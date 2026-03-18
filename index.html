@@ -1,0 +1,2669 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>PromptCraft AI — Generador de Prompts</title>
+
+<!-- ===== PWA META TAGS ===== -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#c8a96e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PromptCraft">
+<meta name="application-name" content="PromptCraft AI">
+<meta name="msapplication-TileColor" content="#0a0a0c">
+<meta name="description" content="Genera prompts profesionales para IA: outfits, escenarios, poses, oficios y más. Funciona sin internet.">
+
+<!-- Íconos Apple (iOS) -->
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="192x192" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="./icons/icon-512.png">
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" sizes="96x96" href="./icons/icon-96.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+
+<!-- Open Graph -->
+<meta property="og:title" content="PromptCraft AI">
+<meta property="og:description" content="Generador de prompts profesionales para IA">
+<meta property="og:type" content="website">
+
+<!-- Splash screen iOS -->
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<style>
+/* ===== SPLASH SCREEN ===== */
+#pwa-splash{
+  position:fixed;inset:0;z-index:9999;
+  background:#0a0a0c;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  transition:opacity .4s ease;
+}
+#pwa-splash.hidden{opacity:0;pointer-events:none}
+.splash-logo{
+  width:80px;height:80px;border-radius:20px;
+  background:#111114;border:2px solid #c8a96e;
+  display:flex;align-items:center;justify-content:center;
+  font-size:40px;font-family:'Georgia',serif;color:#c8a96e;
+  box-shadow:0 0 40px rgba(200,169,110,.2);
+  animation:splashPulse 1.5s ease-in-out infinite;
+}
+.splash-name{font-family:'Georgia',serif;font-size:22px;color:#c8a96e;letter-spacing:.06em}
+.splash-sub{font-size:12px;color:#6b6875;letter-spacing:.1em;text-transform:uppercase}
+.splash-bar{width:160px;height:2px;background:#1e1e25;border-radius:2px;overflow:hidden;margin-top:8px}
+.splash-fill{height:100%;background:linear-gradient(90deg,#c8a96e,#9b7fd4);border-radius:2px;animation:splashLoad 1.2s ease forwards}
+@keyframes splashPulse{0%,100%{box-shadow:0 0 20px rgba(200,169,110,.15)}50%{box-shadow:0 0 40px rgba(200,169,110,.35)}}
+@keyframes splashLoad{from{width:0}to{width:100%}}
+
+/* ===== BANNER DE INSTALACIÓN ===== */
+#install-banner{
+  position:fixed;bottom:70px;left:12px;right:12px;z-index:500;
+  background:#18181d;border:1px solid #c8a96e;border-radius:14px;
+  padding:14px 16px;display:none;
+  box-shadow:0 8px 32px rgba(0,0,0,.6);
+  animation:slideUp .3s ease;
+}
+#install-banner.show{display:flex;align-items:center;gap:12px}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
+.ib-icon{width:44px;height:44px;border-radius:10px;background:#111114;border:1px solid #2a2a35;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px}
+.ib-text{flex:1;min-width:0}
+.ib-title{font-size:13px;font-weight:600;color:#e8e6e0;margin-bottom:2px}
+.ib-sub{font-size:11px;color:#6b6875}
+.ib-actions{display:flex;flex-direction:column;gap:5px;flex-shrink:0}
+.ib-btn-install{padding:7px 14px;border-radius:7px;border:none;background:#c8a96e;color:#000;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.ib-btn-close{padding:5px 10px;border-radius:6px;border:1px solid #2a2a35;background:transparent;color:#6b6875;font-size:11px;cursor:pointer}
+
+/* ===== INDICADOR OFFLINE ===== */
+#offline-bar{
+  position:fixed;top:52px;left:0;right:0;z-index:300;
+  background:#e05555;color:#fff;text-align:center;
+  font-size:11px;padding:5px;font-weight:500;letter-spacing:.04em;
+  display:none;
+}
+
+/* ===== INDICADOR UPDATE ===== */
+#update-bar{
+  position:fixed;top:52px;left:0;right:0;z-index:300;
+  background:#5ec8a0;color:#000;
+  display:none;align-items:center;justify-content:center;gap:10px;
+  font-size:12px;padding:8px;font-weight:500;
+}
+#update-bar.show{display:flex}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ===== VARIABLES ===== */
+:root{
+  --bg:#0a0a0c;--s1:#111114;--s2:#18181d;--s3:#1e1e25;--s4:#242430;
+  --border:#2a2a35;--border2:#333342;
+  --accent:#c8a96e;--accent2:#9b7fd4;--accent3:#5ec8a0;
+  --text:#e8e6e0;--muted:#6b6875;--muted2:#888;
+  --danger:#e05555;--success:#5ec8a0;
+  --topbar-h:52px;--genbar-h:62px;
+  --sidebar-w:270px;
+  --radius:10px;--radius-sm:6px;
+  --font:'DM Sans',sans-serif;
+  --font-serif:'Playfair Display',serif;
+}
+/* ===== RESET ===== */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px}
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:var(--s1)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+textarea,input,select,button{font-family:var(--font)}
+/* ===== TOPBAR ===== */
+#topbar{
+  height:var(--topbar-h);display:flex;align-items:center;
+  padding:0 16px;gap:10px;
+  background:var(--s1);border-bottom:1px solid var(--border);
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  backdrop-filter:blur(12px);
+}
+.logo{font-family:var(--font-serif);font-size:16px;color:var(--accent);flex:1;white-space:nowrap}
+.logo em{color:var(--text);font-style:normal;font-weight:300}
+/* DEVICE SELECTOR */
+#device-bar{
+  display:flex;gap:3px;background:var(--s3);border:1px solid var(--border);
+  border-radius:8px;padding:3px;
+}
+.dev-btn{
+  padding:4px 8px;border-radius:5px;border:none;background:transparent;
+  color:var(--muted);cursor:pointer;font-size:11px;transition:all .2s;
+  display:flex;align-items:center;gap:4px;white-space:nowrap;
+}
+.dev-btn.active{background:var(--s4);color:var(--text)}
+.dev-btn svg{width:13px;height:13px;fill:currentColor}
+/* LANG */
+.lang-pill{display:flex;gap:2px;background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:3px}
+.lang-btn{padding:4px 10px;border-radius:5px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:11px;transition:all .15s;font-weight:500}
+.lang-btn.active{background:var(--accent);color:#000}
+/* HAMBURGER (mobile) */
+#ham-btn{
+  width:36px;height:36px;border:1px solid var(--border);border-radius:8px;
+  background:var(--s2);display:none;align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;
+}
+#ham-btn svg{width:18px;height:18px;fill:var(--text)}
+/* ===== LAYOUT ===== */
+#layout{
+  position:fixed;top:var(--topbar-h);bottom:var(--genbar-h);
+  left:0;right:0;display:flex;overflow:hidden;
+}
+/* ===== SIDEBAR ===== */
+#sidebar{
+  width:var(--sidebar-w);flex-shrink:0;
+  background:var(--s1);border-right:1px solid var(--border);
+  overflow-y:auto;height:100%;
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+}
+/* Sidebar overlay (mobile) */
+#sidebar-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);
+  z-index:150;backdrop-filter:blur(4px);
+}
+/* ===== MAIN ===== */
+#main{flex:1;overflow-y:auto;height:100%;padding:18px 16px 8px}
+/* ===== GEN BAR ===== */
+#genbar{
+  position:fixed;bottom:0;left:0;right:0;height:var(--genbar-h);
+  background:var(--s1);border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;padding:0 16px;z-index:200;
+}
+/* ===== SIDEBAR SECTIONS ===== */
+.sb-section{border-bottom:1px solid var(--border)}
+.sb-section summary{
+  list-style:none;display:flex;align-items:center;justify-content:space-between;
+  padding:11px 14px;cursor:pointer;font-size:11px;font-weight:600;
+  letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
+  transition:all .2s;user-select:none;
+}
+.sb-section summary:hover{background:var(--s2);color:var(--text)}
+.sb-section[open] summary{background:var(--s3);color:var(--accent)}
+.sb-section summary::after{content:'›';font-size:16px;transition:transform .2s;margin-left:4px}
+.sb-section[open] summary::after{transform:rotate(90deg)}
+.sb-body{padding:10px 12px 14px}
+/* ===== FORM ELEMENTS ===== */
+.field{margin-bottom:12px}
+.field label,.flabel{display:block;font-size:10px;color:var(--muted);margin-bottom:5px;letter-spacing:.07em;text-transform:uppercase}
+.fselect,.finput{
+  width:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:8px 10px;color:var(--text);font-size:13px;appearance:none;cursor:pointer;
+  transition:border-color .2s;outline:none;
+}
+.fselect:focus,.finput:focus{border-color:var(--accent)}
+.fselect option{background:var(--s2)}
+.ftextarea{
+  width:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:8px 10px;color:var(--text);font-size:12px;resize:vertical;min-height:70px;
+  outline:none;transition:border-color .2s;
+}
+.ftextarea:focus{border-color:var(--accent)}
+/* ===== TOGGLE ===== */
+.trow{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)}
+.trow:last-child{border-bottom:none}
+.tlabel{font-size:12px;color:var(--text);flex:1;margin-right:10px}
+.tsub{font-size:10px;color:var(--muted);display:block;margin-top:1px}
+.tog{position:relative;width:38px;height:22px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0}
+.tog-track{position:absolute;inset:0;background:var(--border);border-radius:20px;cursor:pointer;transition:background .2s}
+.tog input:checked+.tog-track{background:var(--accent)}
+.tog-thumb{position:absolute;width:16px;height:16px;background:#fff;border-radius:50%;top:3px;left:3px;transition:transform .2s;pointer-events:none}
+.tog input:checked~.tog-thumb{transform:translateX(16px)}
+/* ===== CHIPS ===== */
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.chip{
+  padding:4px 11px;border-radius:20px;border:1px solid var(--border);
+  font-size:11px;cursor:pointer;transition:all .15s;color:var(--muted);background:transparent;
+}
+.chip:hover,.chip.active{border-color:var(--accent);color:var(--accent);background:rgba(200,169,110,.12)}
+/* ===== SKIN SWATCHES ===== */
+.skin-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.swatch{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .2s}
+.swatch:hover,.swatch.active{border-color:#fff;transform:scale(1.1)}
+/* ===== TABS ===== */
+.tabs-wrap{
+  display:flex;gap:2px;margin-bottom:18px;
+  background:var(--s1);border-radius:var(--radius);padding:4px;
+  border:1px solid var(--border);overflow-x:auto;
+}
+.tabs-wrap::-webkit-scrollbar{height:0}
+.tab-btn{
+  flex-shrink:0;padding:7px 10px;border-radius:7px;border:none;background:transparent;
+  color:var(--muted);cursor:pointer;font-size:12px;transition:all .2s;font-weight:500;
+  white-space:nowrap;
+}
+.tab-btn.active{background:var(--s3);color:var(--text)}
+.tab-btn:hover:not(.active){color:var(--text)}
+/* ===== PANELS ===== */
+.panel{display:none}.panel.active{display:block}
+/* ===== SECTION HEADER ===== */
+.sh{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.sh h2{font-family:var(--font-serif);font-size:17px;font-weight:400}
+.badge{background:var(--s3);border:1px solid var(--border);padding:2px 8px;border-radius:20px;font-size:10px;color:var(--muted)}
+/* ===== DROPDOWN SECTIONS ===== */
+.drop{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:10px}
+.drop-head{
+  display:flex;align-items:center;justify-content:space-between;padding:12px 14px;
+  background:var(--s2);cursor:pointer;user-select:none;transition:background .2s;
+}
+.drop-head:hover,.drop-head.open{background:var(--s3)}
+.drop-title{font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px}
+.drop-arr{font-size:16px;color:var(--muted);transition:transform .25s}
+.drop-arr.open{transform:rotate(90deg)}
+.drop-body{display:none;padding:12px 14px;background:var(--s1)}
+.drop-body.open{display:block}
+/* ===== SCENARIO GRID ===== */
+.sc-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;max-height:260px;overflow-y:auto}
+.sc-item{
+  padding:6px 9px;border-radius:6px;border:1px solid var(--border);
+  font-size:11px;cursor:pointer;transition:all .15s;color:var(--muted);background:var(--s2);
+  line-height:1.4;
+}
+.sc-item:hover{border-color:var(--accent2);color:var(--text)}
+.sc-item.active{border-color:var(--accent);background:rgba(200,169,110,.1);color:var(--accent)}
+/* ===== GRID CARDS ===== */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.card-opt{
+  border:1px solid var(--border);border-radius:8px;padding:10px;
+  cursor:pointer;transition:all .2s;background:var(--s2);
+  font-size:12px;text-align:center;color:var(--muted);
+}
+.card-opt:hover{border-color:var(--accent2);color:var(--text)}
+.card-opt.active{border-color:var(--accent);background:rgba(200,169,110,.1);color:var(--accent)}
+.card-opt .ico{font-size:22px;display:block;margin-bottom:5px}
+/* ===== MC GRID ===== */
+.mc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:3px;max-height:220px;overflow-y:auto}
+.mc-item{display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:5px;cursor:pointer;font-size:11px;color:var(--muted);transition:all .15s;line-height:1.3}
+.mc-item:hover{background:var(--s3);color:var(--text)}
+.mc-item input[type=checkbox]{accent-color:var(--accent);cursor:pointer;flex-shrink:0}
+/* ===== JOBS GRID ===== */
+.jobs-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}
+.job-card{
+  border:1px solid var(--border);border-radius:8px;padding:9px 10px;
+  cursor:pointer;transition:all .2s;background:var(--s2);
+  font-size:11px;color:var(--muted);display:flex;align-items:center;gap:7px;
+}
+.job-card:hover{border-color:var(--accent2);color:var(--text)}
+.job-card.active{border-color:var(--accent);background:rgba(200,169,110,.1);color:var(--accent)}
+.job-card .jico{font-size:18px;flex-shrink:0}
+/* ===== OUTPUT ===== */
+.out-box{background:var(--s2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px}
+.out-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.out-box pre{font-size:11px;line-height:1.75;white-space:pre-wrap;word-break:break-word;color:var(--text)}
+.out-actions{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap}
+/* ===== BUTTONS ===== */
+.btn{padding:9px 18px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--accent);color:#000}
+.btn-primary:hover,.btn-primary:active{background:#d9ba7f}
+.btn-secondary{background:var(--s3);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:5px 12px;font-size:11px;border-radius:6px}
+.btn-danger{background:rgba(224,85,85,.12);color:var(--danger);border:1px solid rgba(224,85,85,.25)}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+/* FMT TABS */
+.fmt-tabs{display:flex;gap:4px;margin-bottom:12px}
+.fmt-tab{padding:5px 14px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:11px;transition:all .15s}
+.fmt-tab.active{background:var(--s3);color:var(--text)}
+/* SEARCH */
+.search-in{
+  width:100%;background:var(--s2);border:1px solid var(--border);border-radius:6px;
+  padding:7px 10px;color:var(--text);font-size:12px;margin-bottom:9px;outline:none;
+  transition:border-color .2s;
+}
+.search-in:focus{border-color:var(--accent)}
+/* HISTORY */
+.hist-item{border:1px solid var(--border);border-radius:8px;padding:11px 12px;margin-bottom:8px;background:var(--s2);cursor:pointer;transition:all .2s}
+.hist-item:hover{border-color:var(--accent)}
+.hist-time{font-size:10px;color:var(--muted);margin-bottom:4px}
+.hist-prev{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* TOAST */
+#toast{
+  position:fixed;bottom:74px;left:50%;transform:translateX(-50%) translateY(12px);
+  background:var(--success);color:#000;padding:9px 20px;border-radius:8px;
+  font-size:12px;font-weight:600;opacity:0;transition:all .25s;pointer-events:none;z-index:999;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* EMPTY */
+.empty{text-align:center;padding:36px 20px;color:var(--muted)}
+.empty .eico{font-size:36px;margin-bottom:10px}
+.empty p{font-size:13px}
+/* DIVIDER */
+.div{height:1px;background:var(--border);margin:12px 0}
+/* SEP */
+.sep{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+/* WM PREVIEW */
+.wm-prev{background:var(--s3);border:1px dashed var(--border);border-radius:6px;padding:10px;text-align:center;font-size:11px;color:var(--muted);margin-top:8px}
+/* SKIN LABEL */
+.skin-lbl{font-size:11px;color:var(--accent);margin-top:6px}
+/* SELECT SUMMARY */
+#sel-sum{font-size:11px;color:var(--muted);flex:1;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ===== DEVICE MODES ===== */
+/* MOBILE (default) */
+body.mode-mobile{--sidebar-w:0px}
+body.mode-mobile #sidebar{
+  position:fixed;top:var(--topbar-h);bottom:0;left:0;
+  width:285px;z-index:160;transform:translateX(-100%);
+  box-shadow:4px 0 24px rgba(0,0,0,.5);
+}
+body.mode-mobile #sidebar.open{transform:translateX(0)}
+body.mode-mobile #sidebar-overlay.open{display:block}
+body.mode-mobile #ham-btn{display:flex}
+body.mode-mobile #device-bar{display:none}
+body.mode-mobile #layout{left:0}
+body.mode-mobile .tabs-wrap{overflow-x:auto}
+body.mode-mobile .tab-btn{font-size:11px;padding:6px 8px}
+body.mode-mobile .sc-grid{grid-template-columns:1fr}
+body.mode-mobile .jobs-grid{grid-template-columns:1fr}
+body.mode-mobile .mc-grid{grid-template-columns:1fr}
+body.mode-mobile #main{padding:14px 12px 6px}
+body.mode-mobile .grid2{grid-template-columns:1fr 1fr}
+
+/* TABLET */
+body.mode-tablet{--sidebar-w:240px}
+body.mode-tablet #sidebar{width:240px;position:relative;transform:none}
+body.mode-tablet #ham-btn{display:none}
+body.mode-tablet #layout{display:flex}
+body.mode-tablet .sc-grid{grid-template-columns:1fr 1fr}
+body.mode-tablet .jobs-grid{grid-template-columns:repeat(2,1fr)}
+body.mode-tablet .mc-grid{grid-template-columns:repeat(2,1fr)}
+body.mode-tablet #main{padding:16px 14px 6px}
+
+/* DESKTOP */
+body.mode-desktop{--sidebar-w:270px}
+body.mode-desktop #sidebar{width:270px;position:relative;transform:none}
+body.mode-desktop #ham-btn{display:none}
+body.mode-desktop .sc-grid{grid-template-columns:1fr 1fr}
+body.mode-desktop .jobs-grid{grid-template-columns:repeat(3,1fr)}
+body.mode-desktop .mc-grid{grid-template-columns:repeat(3,1fr)}
+body.mode-desktop #main{padding:18px 20px 6px}
+
+/* DESKTOP device bar visible in non-mobile */
+body.mode-tablet #device-bar,body.mode-desktop #device-bar{display:flex}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.panel.active{animation:fadeIn .2s ease}
+.out-box{animation:fadeIn .2s ease}
+</style>
+</head>
+<body class="mode-mobile">
+
+<!-- SPLASH SCREEN -->
+<div id="pwa-splash">
+  <div class="splash-logo">P</div>
+  <div class="splash-name">PromptCraft AI</div>
+  <div class="splash-sub">Generador de Prompts</div>
+  <div class="splash-bar"><div class="splash-fill"></div></div>
+</div>
+
+<!-- BANNER INSTALACIÓN -->
+<div id="install-banner">
+  <div class="ib-icon">✨</div>
+  <div class="ib-text">
+    <div class="ib-title">Instalar como App</div>
+    <div class="ib-sub">Funciona sin internet · Sin Play Store</div>
+  </div>
+  <div class="ib-actions">
+    <button class="ib-btn-install" id="btn-install-pwa">Instalar</button>
+    <button class="ib-btn-close" onclick="dismissInstall()">Ahora no</button>
+  </div>
+</div>
+
+<!-- BARRA OFFLINE -->
+<div id="offline-bar">📵 Sin conexión — funcionando en modo offline</div>
+
+<!-- BARRA UPDATE -->
+<div id="update-bar">
+  🔄 Nueva versión disponible —
+  <button onclick="applyUpdate()" style="padding:4px 12px;border-radius:5px;border:none;background:#000;color:#5ec8a0;font-size:11px;cursor:pointer;font-weight:600;margin-left:4px">Actualizar ahora</button>
+  <button onclick="document.getElementById('update-bar').classList.remove('show')" style="padding:4px 8px;border-radius:5px;border:none;background:transparent;color:#007a52;font-size:11px;cursor:pointer;margin-left:4px">✕</button>
+</div>
+
+<!-- TOPBAR -->
+<header id="topbar">
+  <button id="ham-btn" onclick="toggleSidebar()" aria-label="Menú">
+    <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+  </button>
+  <div class="logo">PromptCraft <em>AI</em></div>
+
+  <!-- DEVICE SELECTOR (tablet/desktop only) -->
+  <div id="device-bar">
+    <button class="dev-btn" onclick="setMode('mobile',this)" title="Móvil">
+      <svg viewBox="0 0 24 24"><path d="M17 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm-5 17a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>
+      Móvil
+    </button>
+    <button class="dev-btn" onclick="setMode('tablet',this)" title="Tableta">
+      <svg viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-7 15a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>
+      Tableta
+    </button>
+    <button class="dev-btn active" onclick="setMode('desktop',this)" title="Escritorio">
+      <svg viewBox="0 0 24 24"><path d="M20 3H4a1 1 0 0 0-1 1v13a1 1 0 0 0 1 1h7v2H8a1 1 0 0 0 0 2h8a1 1 0 0 0 0-2h-3v-2h7a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1z"/></svg>
+      Escritorio
+    </button>
+  </div>
+
+  <div class="lang-pill">
+    <button class="lang-btn active" onclick="setLang('es',this)">ES</button>
+    <button class="lang-btn" onclick="setLang('en',this)">EN</button>
+  </div>
+</header>
+
+<!-- OVERLAY (mobile sidebar) -->
+<div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<!-- LAYOUT -->
+<div id="layout">
+
+<!-- ====== SIDEBAR ====== -->
+<aside id="sidebar">
+
+  <!-- GÉNERO -->
+  <details class="sb-section" open>
+    <summary>👤 Género del Modelo</summary>
+    <div class="sb-body">
+      <div class="grid2">
+        <div class="card-opt active" id="card-fem" onclick="setGenero('female',this)">
+          <span class="ico">♀️</span>Mujer
+        </div>
+        <div class="card-opt" id="card-mas" onclick="setGenero('male',this)">
+          <span class="ico">♂️</span>Hombre
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <!-- TONO DE PIEL -->
+  <details class="sb-section">
+    <summary>🎨 Tono de Piel</summary>
+    <div class="sb-body">
+      <div class="skin-row" id="skin-row"></div>
+      <div class="skin-lbl" id="skin-lbl">Medio cálido</div>
+    </div>
+  </details>
+
+  <!-- CABELLO -->
+  <details class="sb-section">
+    <summary>💇 Cabello</summary>
+    <div class="sb-body">
+      <div class="field">
+        <label>Estilo de Corte</label>
+        <select class="fselect" id="hair-style" onchange="st.hairStyle=this.value">
+          <option value="">— Seleccionar —</option>
+          <optgroup label="Largos">
+            <option>Liso largo</option><option>Ondulado largo</option><option>Rizado largo</option>
+            <option>Liso con fleco recto</option><option>Liso con fleco cortina</option>
+          </optgroup>
+          <optgroup label="Medios">
+            <option>Bob clásico</option><option>Bob texturizado</option><option>Midi con capas</option>
+            <option>Wolf cut (corte lobo)</option><option>Shag cut</option>
+          </optgroup>
+          <optgroup label="Cortos">
+            <option>Pixie cut</option><option>Buzz cut rasurado</option><option>Undercut lateral</option>
+            <option>Fade con volumen arriba</option><option>Texturizado deslavado</option>
+          </optgroup>
+          <optgroup label="Recogidos">
+            <option>Chongo alto</option><option>Chongo bajo</option><option>Cola alta</option>
+            <option>Cola baja elegante</option><option>Trenzas largas</option>
+            <option>Espacio buns (dos chongos)</option><option>Half-up half-down</option>
+          </optgroup>
+          <optgroup label="Texturas especiales">
+            <option>Afro natural</option><option>Rastas / Dreadlocks</option>
+            <option>Rizado apretado (tipo 4C)</option><option>Locs con accesorios</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="field">
+        <label>Color de Cabello</label>
+        <select class="fselect" id="hair-color" onchange="st.hairColor=this.value">
+          <option value="">— Seleccionar —</option>
+          <optgroup label="Naturales">
+            <option>Negro natural</option><option>Castaño oscuro</option><option>Castaño medio</option>
+            <option>Castaño claro</option><option>Rubio dorado</option><option>Rubio platino</option>
+            <option>Rubio fresa</option><option>Rojizo cobrizo</option>
+          </optgroup>
+          <optgroup label="Coloraciones">
+            <option>Rojo vibrante</option><option>Borgoña vino</option><option>Negro azulado</option>
+            <option>Gris plata</option><option>Blanco nieve</option>
+          </optgroup>
+          <optgroup label="Fantasía">
+            <option>Rosa pastel</option><option>Rosa intenso</option><option>Lavanda suave</option>
+            <option>Morado profundo</option><option>Azul petróleo</option><option>Azul eléctrico</option>
+            <option>Verde esmeralda</option><option>Naranja melocotón</option>
+          </optgroup>
+          <optgroup label="Técnicas">
+            <option>Ombré castaño a rubio</option><option>Balayage con mechas</option>
+            <option>Tono sobre tono</option><option>Dos tonos contrastantes</option>
+          </optgroup>
+        </select>
+      </div>
+    </div>
+  </details>
+
+  <!-- OUTFIT BASE -->
+  <details class="sb-section" open>
+    <summary>👗 Outfit Base</summary>
+    <div class="sb-body">
+      <div class="trow">
+        <div class="tlabel">Outfit personalizado<span class="tsub">Escribir descripción</span></div>
+        <label class="tog"><input type="checkbox" id="tog-custom-outfit" onchange="toggleCustomOutfit(this.checked)"><div class="tog-track"></div><div class="tog-thumb"></div></label>
+      </div>
+      <div id="custom-outfit-wrap" style="display:none;margin-top:10px">
+        <textarea class="ftextarea" id="custom-outfit-txt" placeholder="Ej: vestido rojo ajustado sin mangas con escote V, cinturón negro, tacones de aguja..." oninput="st.customOutfit=this.value"></textarea>
+      </div>
+      <div id="preset-outfit-wrap" style="margin-top:10px">
+        <div class="field">
+          <label>Preset de Outfit</label>
+          <select class="fselect" id="outfit-preset" onchange="st.outfitPreset=this.value">
+            <option value="gothic">🖤 Gótico — Playera negra + minifalda + botas (DEFAULT)</option>
+            <option value="casual">👕 Casual — Jeans + camiseta + tenis</option>
+            <option value="elegante">✨ Elegante — Blazer + pantalón + tacones</option>
+            <option value="deportivo">🏋️ Deportivo — Leggings + top deportivo</option>
+            <option value="playa">🏖️ Playa — Bikini + pareo + sandalias</option>
+            <option value="fiesta">🎉 Fiesta — Vestido corto + tacones</option>
+            <option value="streetwear">🧢 Streetwear — Cargo + hoodie oversized</option>
+            <option value="del-menu">📋 Elegir del menú de Ropas</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <!-- PROMPT BASE IDENTIDAD -->
+  <details class="sb-section" open>
+    <summary>🔒 Ancla de Identidad</summary>
+    <div class="sb-body">
+      <div class="trow">
+        <div class="tlabel">Activar prompt base<span class="tsub">Consistencia facial 100%</span></div>
+        <label class="tog"><input type="checkbox" id="tog-base" checked onchange="st.useBase=this.checked"><div class="tog-track"></div><div class="tog-thumb"></div></label>
+      </div>
+      <p style="font-size:10px;color:var(--muted);margin-top:8px;line-height:1.5">Ancla la identidad de la persona a la imagen de referencia. Mantiene coherencia de rasgos en todas las generaciones.</p>
+    </div>
+  </details>
+
+  <!-- NEGATIVE PROMPTS -->
+  <details class="sb-section">
+    <summary>🚫 Negative Prompts</summary>
+    <div class="sb-body">
+      <div id="neg-list"></div>
+    </div>
+  </details>
+
+  <!-- CALIDAD -->
+  <details class="sb-section">
+    <summary>⚙️ Calidad y Formato</summary>
+    <div class="sb-body">
+      <div class="field">
+        <label>Resolución</label>
+        <div class="chips" id="res-chips">
+          <div class="chip" onclick="selChip(this,'res','1K')">1K</div>
+          <div class="chip active" onclick="selChip(this,'res','2K')">2K</div>
+          <div class="chip" onclick="selChip(this,'res','4K')">4K</div>
+          <div class="chip" onclick="selChip(this,'res','8K')">8K</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Formato de Imagen</label>
+        <div class="chips" id="fmt-chips">
+          <div class="chip active" onclick="selChip(this,'fmt','JPG')">JPG</div>
+          <div class="chip" onclick="selChip(this,'fmt','JPEG')">JPEG</div>
+          <div class="chip" onclick="selChip(this,'fmt','PNG')">PNG</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Relación de Aspecto</label>
+        <div class="chips" id="ar-chips">
+          <div class="chip active" onclick="selChip(this,'ar','9:16')">9:16</div>
+          <div class="chip" onclick="selChip(this,'ar','1:1')">1:1</div>
+          <div class="chip" onclick="selChip(this,'ar','4:5')">4:5</div>
+          <div class="chip" onclick="selChip(this,'ar','16:9')">16:9</div>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <!-- MARCA DE AGUA -->
+  <details class="sb-section">
+    <summary>💧 Marca de Agua</summary>
+    <div class="sb-body">
+      <div class="trow">
+        <div class="tlabel">Agregar marca de agua<span class="tsub">Sutil pero detectable</span></div>
+        <label class="tog"><input type="checkbox" id="tog-wm" onchange="toggleWM(this.checked)"><div class="tog-track"></div><div class="tog-thumb"></div></label>
+      </div>
+      <div id="wm-config" style="display:none;margin-top:10px">
+        <div class="field">
+          <label>Texto de la marca</label>
+          <input type="text" class="finput" id="wm-texto" placeholder="@tuusuario" oninput="st.wmText=this.value;updWMPreview()">
+        </div>
+        <div class="field">
+          <label>Posición</label>
+          <select class="fselect" id="wm-pos" onchange="st.wmPos=this.value;updWMPreview()">
+            <option value="esquina inferior derecha">Esquina inferior derecha</option>
+            <option value="esquina inferior izquierda">Esquina inferior izquierda</option>
+            <option value="esquina superior derecha">Esquina superior derecha</option>
+            <option value="centro en diagonal">Centro diagonal</option>
+          </select>
+        </div>
+        <div class="wm-prev" id="wm-prev">Vista previa aparecerá aquí</div>
+      </div>
+    </div>
+  </details>
+
+  <!-- DISPOSITIVO (solo en sidebar mobile) -->
+  <details class="sb-section" id="device-sb-section">
+    <summary>📱 Tipo de Dispositivo</summary>
+    <div class="sb-body">
+      <p style="font-size:11px;color:var(--muted);margin-bottom:10px">Elige el modo visual de la app:</p>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="btn btn-secondary btn-sm" onclick="setMode('mobile');toggleSidebar()" style="justify-content:flex-start;gap:8px">📱 Móvil</button>
+        <button class="btn btn-secondary btn-sm" onclick="setMode('tablet');toggleSidebar()" style="justify-content:flex-start;gap:8px">📟 Tableta</button>
+        <button class="btn btn-secondary btn-sm" onclick="setMode('desktop');toggleSidebar()" style="justify-content:flex-start;gap:8px">🖥️ Escritorio</button>
+      </div>
+    </div>
+  </details>
+
+</aside><!-- /sidebar -->
+
+<!-- ====== MAIN ====== -->
+<main id="main">
+
+  <!-- TABS -->
+  <div class="tabs-wrap" id="main-tabs">
+    <button class="tab-btn active" onclick="showTab('escena',this)">🎬 Escena</button>
+    <button class="tab-btn" onclick="showTab('ropas',this)">👗 Ropas</button>
+    <button class="tab-btn" onclick="showTab('poses',this)">📸 Poses</button>
+    <button class="tab-btn" onclick="showTab('oficios',this)">💼 Oficios</button>
+    <button class="tab-btn" onclick="showTab('extras',this)">✨ Extras</button>
+    <button class="tab-btn" onclick="showTab('output',this)">⚡ Output</button>
+    <button class="tab-btn" onclick="showTab('historial',this)">🕘 Historial</button>
+  </div>
+
+  <!-- ==== TAB: ESCENA ==== -->
+  <div id="tab-escena" class="panel active">
+    <div class="sh"><h2>Escena y Ambiente</h2><span class="badge">Escenarios</span></div>
+
+    <div class="grid2" style="margin-bottom:12px">
+      <div class="field">
+        <label>Tipo de Toma</label>
+        <select class="fselect" id="shot-type" onchange="st.shotType=this.value">
+          <option value="">— Seleccionar —</option>
+          <option>Cuerpo completo</option>
+          <option>Medio cuerpo (desde la cintura)</option>
+          <option>Retrato primer plano (busto)</option>
+          <option>Retrato facial (solo cara)</option>
+          <option>Plano detalle (manos, zapatos)</option>
+          <option>Toma desde arriba (cenital)</option>
+          <option>Toma desde abajo (contrapicado)</option>
+          <option>Por encima del hombro</option>
+          <option>Silueta contra luz</option>
+          <option>Gran angular con entorno</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Fuente de la Foto</label>
+        <select class="fselect" id="cam-type" onchange="st.camType=this.value">
+          <option value="">— Seleccionar —</option>
+          <option>Cámara profesional DSLR</option>
+          <option>Selfie con cámara frontal del teléfono</option>
+          <option>Foto tomada por otra persona con celular</option>
+          <option>Estilo publicación de Instagram</option>
+          <option>Estilo TikTok (vertical dinámico)</option>
+          <option>Foto candid (sin pose)</option>
+          <option>Foto editorial de moda</option>
+          <option>Foto de catálogo de ropa</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ESCENARIOS URBANOS -->
+    <div class="drop">
+      <div class="drop-head" onclick="togDrop(this)">
+        <div class="drop-title">🌆 Urbanas / Ciudad</div>
+        <div class="drop-arr">›</div>
+      </div>
+      <div class="drop-body">
+        <div class="sc-grid" id="sc-urbano"></div>
+      </div>
+    </div>
+
+    <!-- NATURALEZA -->
+    <div class="drop">
+      <div class="drop-head" onclick="togDrop(this)">
+        <div class="drop-title">🌿 Naturaleza</div>
+        <div class="drop-arr">›</div>
+      </div>
+      <div class="drop-body">
+        <div class="sc-grid" id="sc-naturaleza"></div>
+      </div>
+    </div>
+
+    <!-- PLAYA -->
+    <div class="drop">
+      <div class="drop-head" onclick="togDrop(this)">
+        <div class="drop-title">🌊 Playa / Verano</div>
+        <div class="drop-arr">›</div>
+      </div>
+      <div class="drop-body">
+        <div class="sc-grid" id="sc-playa"></div>
+      </div>
+    </div>
+
+    <!-- CASA -->
+    <div class="drop">
+      <div class="drop-head" onclick="togDrop(this)">
+        <div class="drop-title">🏠 Lifestyle / Casa</div>
+        <div class="drop-arr">›</div>
+      </div>
+      <div class="drop-body">
+        <div class="sc-grid" id="sc-casa"></div>
+      </div>
+    </div>
+
+    <!-- COMIDA -->
+    <div class="drop">
+      <div class="drop-head" onclick="togDrop(this)">
+        <div class="drop-title">🍽️ Comida / Cafeterías</div>
+        <div class="drop-arr">›</div>
+      </div>
+      <div class="drop-body">
+        <div class="sc-grid" id="sc-comida"></div>
+      </div>
+    </div>
+
+    <!-- VIAJES -->
+    <div class="drop">
+      <div class="drop-head" onclick="togDrop(this)">
+        <div class="drop-title">✈️ Viajes</div>
+        <div class="drop-arr">›</div>
+      </div>
+      <div class="drop-body">
+        <div class="sc-grid" id="sc-viajes"></div>
+      </div>
+    </div>
+
+    <!-- VIDA SOCIAL -->
+    <div class="drop">
+      <div class="drop-head" onclick="togDrop(this)">
+        <div class="drop-title">🎉 Vida Social</div>
+        <div class="drop-arr">›</div>
+      </div>
+      <div class="drop-body">
+        <div class="sc-grid" id="sc-social"></div>
+      </div>
+    </div>
+
+    <!-- CREATIVOS -->
+    <div class="drop">
+      <div class="drop-head" onclick="togDrop(this)">
+        <div class="drop-title">🎥 Creativos / Estéticos</div>
+        <div class="drop-arr">›</div>
+      </div>
+      <div class="drop-body">
+        <div class="sc-grid" id="sc-creativos"></div>
+      </div>
+    </div>
+
+    <!-- VEHÍCULOS -->
+    <div class="drop">
+      <div class="drop-head" onclick="togDrop(this)">
+        <div class="drop-title">🚗 Vehículos</div>
+        <div class="drop-arr">›</div>
+      </div>
+      <div class="drop-body">
+        <div class="sc-grid" id="sc-vehiculos"></div>
+      </div>
+    </div>
+
+    <!-- MÉXICO -->
+    <div class="drop">
+      <div class="drop-head" onclick="togDrop(this)">
+        <div class="drop-title">🇲🇽 Destinos de México</div>
+        <div class="drop-arr">›</div>
+      </div>
+      <div class="drop-body">
+        <div class="sc-grid" id="sc-mexico"></div>
+      </div>
+    </div>
+
+    <!-- VIDA COTIDIANA -->
+    <div class="drop">
+      <div class="drop-head" onclick="togDrop(this)">
+        <div class="drop-title">🌅 Situaciones Cotidianas</div>
+        <div class="drop-arr">›</div>
+      </div>
+      <div class="drop-body">
+        <div class="sc-grid" id="sc-cotidiano"></div>
+      </div>
+    </div>
+
+    <div class="div"></div>
+
+    <div class="grid2" style="margin-top:4px">
+      <div class="field">
+        <label>Iluminación</label>
+        <select class="fselect" id="iluminacion" onchange="st.lighting=this.value">
+          <option value="">— Seleccionar —</option>
+          <option>Luz natural suave</option>
+          <option>Hora dorada (golden hour)</option>
+          <option>Hora azul (blue hour)</option>
+          <option>Luz de estudio con softbox</option>
+          <option>Sombras dramáticas (luz dura)</option>
+          <option>Luces neón de colores</option>
+          <option>Luz de vela o fogata</option>
+          <option>Ring light estilo selfie</option>
+          <option>Luz lateral desde ventana</option>
+          <option>Cielo nublado (luz difusa)</option>
+          <option>Silueta a contraluz</option>
+          <option>Luz de flash directo</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Filtro / Movie Look</label>
+        <select class="fselect" id="filtro" onchange="st.filter=this.value">
+          <option value="">— Sin filtro —</option>
+          <option value="grano de película analógica, cálido y desaturado">🎞️ Film Grain — Analógico, cálido y desaturado</option>
+          <option value="teal y naranja, estilo blockbuster de Hollywood">🎬 Teal & Orange — Blockbuster de Hollywood</option>
+          <option value="VSCO melancólico, sombras apagadas y luces cálidas">📷 VSCO Moody — Sombras apagadas, luces cálidas</option>
+          <option value="bleach bypass, alto contraste muy desaturado">🌑 Bleach Bypass — Alto contraste desaturado</option>
+          <option value="Kodak vintage, cálido con leve desvaneciemiento nostálgico">🟡 Kodak Vintage — Cálido, nostálgico, ligeramente desvaneciado</option>
+          <option value="editorial frío azul, muy nítido, revista de moda">❄️ Azul Editorial Frío — Nítido, revista de moda</option>
+          <option value="dark academia, tonos sepia cálidos, sombras ricas">📚 Dark Academia — Sepia cálido, sombras profundas</option>
+          <option value="etéreo soñador, pastel suave con brillo delicado">🌸 Etéreo Soñador — Pastel suave, brillo delicado</option>
+          <option value="noir blanco y negro, sombras dramáticas, alto contraste monocromático">🎩 Noir B&N — Blanco y negro dramático</option>
+          <option value="cyberpunk con neones, colores eléctricos y luces brillantes">⚡ Cyberpunk Neón — Colores eléctricos intensos</option>
+          <option value="minimalista limpio, blancos luminosos y neutros suaves">🤍 Minimalista Limpio — Blancos luminosos y neutros</option>
+          <option value="Lomo LC-A con viñeta oscura y colores saturados">🔴 Lomografía — Viñeta oscura y colores saturados</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==== TAB: ROPAS ==== -->
+  <div id="tab-ropas" class="panel">
+    <div class="sh"><h2>Variedad de Ropas</h2><span class="badge">200+ combinaciones</span></div>
+    <input class="search-in" id="search-ropas" placeholder="🔍 Buscar outfit..." oninput="filtrarRopas(this.value)">
+    <div id="ropas-container"></div>
+  </div>
+
+  <!-- ==== TAB: POSES ==== -->
+  <div id="tab-poses" class="panel">
+    <div class="sh"><h2>Poses y Expresiones</h2><span class="badge">100 poses</span></div>
+    <input class="search-in" id="search-poses" placeholder="🔍 Buscar pose..." oninput="filtrarPoses(this.value)">
+    <div id="poses-container"></div>
+  </div>
+
+  <!-- ==== TAB: OFICIOS ==== -->
+  <div id="tab-oficios" class="panel">
+    <div class="sh"><h2>Oficios y Profesiones</h2><span class="badge">69 oficios</span></div>
+    <input class="search-in" id="search-oficios" placeholder="🔍 Buscar oficio..." oninput="filtrarOficios(this.value)">
+    <div class="jobs-grid" id="jobs-grid"></div>
+  </div>
+
+  <!-- ==== TAB: EXTRAS ==== -->
+  <div id="tab-extras" class="panel">
+    <div class="sh"><h2>Extras y Detalles</h2></div>
+
+    <!-- TATUAJES -->
+    <div class="drop">
+      <div class="drop-head" onclick="togDrop(this)">
+        <div class="drop-title">🖊️ Tatuajes</div>
+        <div class="drop-arr">›</div>
+      </div>
+      <div class="drop-body">
+        <div class="field">
+          <label>Estilo de Tatuaje</label>
+          <select class="fselect" id="tat-estilo" onchange="st.tatStyle=this.value">
+            <option value="">— Sin tatuaje —</option>
+            <option>Línea fina minimalista</option>
+            <option>Tradicional americano (bold y colorido)</option>
+            <option>Irezumi japonés (carpa, dragón, flores)</option>
+            <option>Acuarela (splashes de color)</option>
+            <option>Geométrico (mandalas, formas)</option>
+            <option>Tribal (Maorí / Polinesio)</option>
+            <option>Blackwork (grandes áreas negras)</option>
+            <option>Micro-realismo (foto realista pequeño)</option>
+            <option>Neo-tradicional (colores vivos, delineado)</option>
+            <option>Lettering caligráfico</option>
+            <option>Puntillismo (stippling)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Zona del Cuerpo</label>
+          <div class="chips" id="tat-zonas">
+            <div class="chip" onclick="togChip(this,'tat','cuello')">Cuello</div>
+            <div class="chip" onclick="togChip(this,'tat','pecho')">Pecho</div>
+            <div class="chip" onclick="togChip(this,'tat','manga completa en brazo')">Manga brazo</div>
+            <div class="chip" onclick="togChip(this,'tat','antebrazo')">Antebrazo</div>
+            <div class="chip" onclick="togChip(this,'tat','muñeca')">Muñeca</div>
+            <div class="chip" onclick="togChip(this,'tat','mano')">Mano</div>
+            <div class="chip" onclick="togChip(this,'tat','espalda completa')">Espalda</div>
+            <div class="chip" onclick="togChip(this,'tat','costillas')">Costillas</div>
+            <div class="chip" onclick="togChip(this,'tat','cadera')">Cadera</div>
+            <div class="chip" onclick="togChip(this,'tat','muslo')">Muslo</div>
+            <div class="chip" onclick="togChip(this,'tat','tobillo')">Tobillo</div>
+            <div class="chip" onclick="togChip(this,'tat','dedo')">Dedo</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PIERCINGS -->
+    <div class="drop">
+      <div class="drop-head" onclick="togDrop(this)">
+        <div class="drop-title">💎 Piercings</div>
+        <div class="drop-arr">›</div>
+      </div>
+      <div class="drop-body">
+        <div class="mc-grid" id="piercings-grid"></div>
+      </div>
+    </div>
+
+    <!-- MARCAS ÚNICAS -->
+    <div class="drop">
+      <div class="drop-head" onclick="togDrop(this)">
+        <div class="drop-title">🌟 Marcas Únicas que la Distinguen</div>
+        <div class="drop-arr">›</div>
+      </div>
+      <div class="drop-body">
+        <div class="mc-grid" id="marcas-grid"></div>
+      </div>
+    </div>
+
+    <!-- TEXTURA DE PIEL -->
+    <div class="drop">
+      <div class="drop-head" onclick="togDrop(this)">
+        <div class="drop-title">🔬 Textura de Piel Realista</div>
+        <div class="drop-arr">›</div>
+      </div>
+      <div class="drop-body">
+        <p style="font-size:11px;color:var(--muted);margin-bottom:8px">Todos activos por defecto para máximo realismo:</p>
+        <div class="mc-grid" id="skin-tex-grid"></div>
+      </div>
+    </div>
+
+    <!-- ACCESORIOS -->
+    <div class="drop">
+      <div class="drop-head" onclick="togDrop(this)">
+        <div class="drop-title">👜 Accesorios (100 opciones)</div>
+        <div class="drop-arr">›</div>
+      </div>
+      <div class="drop-body">
+        <input class="search-in" placeholder="🔍 Buscar accesorio..." oninput="filtrarAccesorios(this.value)">
+        <div class="mc-grid" id="accesorios-grid"></div>
+      </div>
+    </div>
+
+    <!-- EXPRESIONES -->
+    <div class="drop">
+      <div class="drop-head" onclick="togDrop(this)">
+        <div class="drop-title">😊 Microexpresiones y Gestos</div>
+        <div class="drop-arr">›</div>
+      </div>
+      <div class="drop-body">
+        <div class="sc-grid" id="expresiones-grid"></div>
+      </div>
+    </div>
+
+    <!-- MODAS Y CREATIVIDADES -->
+    <div class="drop">
+      <div class="drop-head" onclick="togDrop(this)">
+        <div class="drop-title">🎨 Modas y Creatividades (100)</div>
+        <div class="drop-arr">›</div>
+      </div>
+      <div class="drop-body">
+        <input class="search-in" placeholder="🔍 Buscar escenario..." oninput="filtrarGrid('modas-grid',this.value)">
+        <div class="sc-grid" id="modas-grid"></div>
+      </div>
+    </div>
+
+    <!-- TIPOS INFLUENCER (objetos) -->
+    <div class="drop">
+      <div class="drop-head" onclick="togDrop(this)">
+        <div class="drop-title">📦 Objetos para Influencer (100)</div>
+        <div class="drop-arr">›</div>
+      </div>
+      <div class="drop-body">
+        <input class="search-in" placeholder="🔍 Buscar objeto..." oninput="filtrarGrid('objetos-grid',this.value)">
+        <div class="sc-grid" id="objetos-grid"></div>
+      </div>
+    </div>
+
+    <!-- FOTOS VARIADAS (combos) -->
+    <div class="drop">
+      <div class="drop-head" onclick="togDrop(this)">
+        <div class="drop-title">📷 Fotos Variadas — Combos</div>
+        <div class="drop-arr">›</div>
+      </div>
+      <div class="drop-body">
+        <div class="sc-grid" id="combos-grid"></div>
+      </div>
+    </div>
+
+  </div><!-- /tab-extras -->
+
+  <!-- ==== TAB: OUTPUT ==== -->
+  <div id="tab-output" class="panel">
+    <div class="sh"><h2>Prompts Generados</h2></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn btn-primary" onclick="generarPrompt()">⚡ Generar Prompt</button>
+      <button class="btn btn-secondary" onclick="promptAleatorio()">🎲 Aleatorio</button>
+      <button class="btn btn-secondary" onclick="generar3()">📦 3 Variaciones</button>
+    </div>
+    <div class="fmt-tabs">
+      <button class="fmt-tab active" onclick="setFmt('texto',this)">Texto</button>
+      <button class="fmt-tab" onclick="setFmt('midjourney',this)">Midjourney</button>
+      <button class="fmt-tab" onclick="setFmt('json',this)">JSON</button>
+    </div>
+    <div id="output-area">
+      <div class="empty"><div class="eico">✨</div><p>Configura las opciones y genera tu primer prompt</p></div>
+    </div>
+  </div>
+
+  <!-- ==== TAB: HISTORIAL ==== -->
+  <div id="tab-historial" class="panel">
+    <div class="sh">
+      <h2>Historial de Prompts</h2>
+      <button class="btn btn-danger btn-sm" onclick="limpiarHistorial()">Limpiar</button>
+    </div>
+    <div id="historial-lista">
+      <div class="empty"><div class="eico">🕘</div><p>Aún no hay prompts guardados</p></div>
+    </div>
+  </div>
+
+</main><!-- /main -->
+</div><!-- /layout -->
+
+<!-- GEN BAR -->
+<div id="genbar">
+  <button class="btn btn-primary" style="padding:10px 20px" onclick="generarPrompt();showTab('output',null)">⚡ Generar</button>
+  <button class="btn btn-secondary" style="padding:10px 14px" onclick="promptAleatorio();showTab('output',null)">🎲</button>
+  <span id="sel-sum"></span>
+</div>
+
+<div id="toast">✓ ¡Copiado al portapapeles!</div>
+
+<script>
+/* ============================================================
+   DATOS COMPLETOS EN ESPAÑOL LATINOAMERICANO
+   ============================================================ */
+const D = {
+  tonos:[
+    {val:'tono de piel albino, extremadamente pálido, casi sin pigmentación',bg:'#f5f0eb',lbl:'Albino'},
+    {val:'tono de piel muy claro, porcelana, casi traslúcido',bg:'#f5e8d8',lbl:'Muy Claro'},
+    {val:'tono de piel claro con subtono cálido',bg:'#e8c9a0',lbl:'Claro'},
+    {val:'tono de piel medio cálido con subtono dorado',bg:'#d4a574',lbl:'Medio Cálido'},
+    {val:'tono de piel oliva mediterráneo',bg:'#c07f55',lbl:'Oliva'},
+    {val:'tono de piel bronceado natural',bg:'#a0623a',lbl:'Bronceado'},
+    {val:'tono de piel castaño medio',bg:'#8b4513',lbl:'Castaño'},
+    {val:'tono de piel marrón oscuro',bg:'#6b3320',lbl:'Oscuro'},
+    {val:'tono de piel marrón profundo',bg:'#4a2010',lbl:'Profundo'},
+    {val:'tono de piel ébano muy oscuro, profundo y brillante',bg:'#2a1008',lbl:'Ébano'}
+  ],
+
+  escenarios:{
+    urbano:[
+      'Caminando por una avenida con rascacielos',
+      'Cruzando la calle tipo "street style"',
+      'En una cafetería aesthetic con decoración vintage',
+      'Sentada en una banca del parque con outfit casual',
+      'En un rooftop al atardecer con vista a la ciudad',
+      'En el metro con look urbano',
+      'Frente a grafitis coloridos en una barda',
+      'Bajando escaleras mecánicas del centro comercial',
+      'Junto a un taxi o coche antiguo',
+      'En un puente peatonal con luces de la ciudad'
+    ],
+    naturaleza:[
+      'En un bosque con luz filtrada entre los árboles',
+      'Sentada sobre una roca en la montaña',
+      'Caminando entre árboles en otoño',
+      'Picnic en el campo con flores silvestres',
+      'Junto a un lago que refleja el cielo',
+      'Bajo una cascada con agua cristalina',
+      'En un sendero natural al amanecer',
+      'Rodeada de flores de colores',
+      'En un mirador con vista panorámica',
+      'En un campo de girasoles al atardecer'
+    ],
+    playa:[
+      'Caminando por la orilla del mar al atardecer',
+      'Sentada en la arena con el mar de fondo',
+      'Con palmeras tropicales de fondo',
+      'Saliendo del agua con el cabello mojado',
+      'Tumbada en una hamaca entre palmeras',
+      'Con un coco o bebida tropical en la mano',
+      'Saltando en la playa con el mar detrás',
+      'En un muelle de madera sobre el océano',
+      'Tomando el sol en una tumbona',
+      'Junto a una fogata en la playa por la noche'
+    ],
+    casa:[
+      'Desayunando en cama con café y fruta',
+      'Frente al espejo del baño con luz natural',
+      'Cocinando algo simple en la cocina',
+      'Trabajando desde casa con laptop',
+      'Leyendo un libro en el sillón',
+      'En pijama aesthetic por la mañana',
+      'Preparándose para salir frente al espejo',
+      'Tomando café junto a la ventana con lluvia',
+      'Haciendo ejercicio en casa con yoga mat',
+      'Ordenando y decorando su espacio'
+    ],
+    comida:[
+      'Brunch con hot cakes y café latte art',
+      'Tomando un café con arte latte en cafetería',
+      'Probando comida callejera en el mercado',
+      'Cena en restaurante elegante con vino',
+      'Con un postre colorido (macarons, pastel)',
+      'Bebida fría aesthetic con pajita de colores',
+      'Picnic en el parque con snacks artesanales',
+      'Cocinando en casa: pasta, tacos o smoothie',
+      'En el mercado local comprando verduras',
+      'Close-up de la comida con expresión de disfrute'
+    ],
+    viajes:[
+      'En el aeropuerto con maleta de viaje',
+      'Mirando por la ventana del avión',
+      'En una calle empedrada de Europa',
+      'En hotel boutique con vista a la ciudad',
+      'Revisando mapas o planeando la ruta',
+      'En transporte local (tuk-tuk, bicitaxi, tren)',
+      'Frente a monumentos famosos del mundo',
+      'En un callejón pintoresco y colorido',
+      'Subiendo escaleras antiguas de piedra',
+      'En un mirador turístico con panorama'
+    ],
+    social:[
+      'Riendo con amigos en una reunión',
+      'Brindando en una fiesta de cumpleaños',
+      'En un evento o concierto al aire libre',
+      'Selfie grupal con amigos o familia',
+      'En un club o bar con luces de ambiente',
+      'Celebración de cumpleaños con pastel',
+      'Festival de música al aire libre',
+      'Picnic con amigos en el parque',
+      'Road trip en carretera con amigos',
+      'Celebración casual en casa de alguien'
+    ],
+    creativos:[
+      'Sombras marcadas con luz dura y dramática',
+      'Reflejo en espejo o vidrio de tienda',
+      'Silueta a contraluz del atardecer',
+      'Foto en movimiento con efecto blur artístico',
+      'Con luces neón de colores en la noche',
+      'Bajo la lluvia con paraguas colorido',
+      'Con humo o vapor de colores de fondo',
+      'Fondo minimalista blanco completamente limpio',
+      'Color blocking con fondos sólidos de color',
+      'Juego de perspectivas y ángulos creativos'
+    ],
+    vehiculos:[
+      'Apoyada sobre un coche deportivo',
+      'Sentada en el cofre del auto',
+      'Abriendo la puerta del coche con elegancia',
+      'Bajando de un auto de lujo',
+      'Manejando con una mano de forma casual',
+      'Mirando por la ventana desde adentro',
+      'Con casco de moto bajo el brazo',
+      'Sentada en una motocicleta',
+      'Pedaleando en bicicleta por el parque',
+      'En scooter eléctrico en la ciudad',
+      'Caminando en el aeropuerto con maleta',
+      'Mirando el paisaje desde la ventana del tren',
+      'En yate con vista al mar abierto',
+      'Manejando jet ski en el mar',
+      'Bajando de helicóptero con actitud'
+    ],
+    mexico:[
+      'Centro Histórico de la Ciudad de México',
+      'Cancún: resort de playa frente al Caribe',
+      'Calles empedradas de Guadalajara',
+      'Tulum: zona arqueológica con selva',
+      'Los Cabos: costa al atardecer',
+      'San Miguel de Allende: callejón colorido',
+      'Mercado de Oaxaca entre textiles y colores',
+      'Puerto Vallarta: malecón al atardecer',
+      'Chichén Itzá: pirámide El Castillo',
+      'Bacalar: Laguna de los Siete Colores',
+      'Hierve el Agua, Oaxaca: petrificaciones naturales',
+      'Real de Catorce, San Luis Potosí: pueblo mágico',
+      'Holbox: playa sin coches con flamencos',
+      'Mazatlán: centro histórico iluminado',
+      'Monterrey: Macroplaza con la Fama'
+    ],
+    cotidiano:[
+      'Paseando al perro en el parque del barrio',
+      'Haciendo el súper en el mercado',
+      'Commute en el metro hora pico',
+      'Trabajando desde una cafetería',
+      'Rutina de skincare por la mañana',
+      'Corriendo al aire libre al amanecer',
+      'Recogiendo a los niños de la escuela',
+      'Cocinando la cena en casa',
+      'Videollamada de trabajo desde casa',
+      'Comprando ropa en el centro comercial',
+      'En el gym haciendo sentadillas',
+      'Yendo a la oficina con café en mano',
+      'Esperando el Uber/Didi en la banqueta',
+      'Cargando gasolina al auto',
+      'Reunión informal de trabajo en café',
+      'Noche de pelis en casa con cobija',
+      'Estudiando tarde en la noche',
+      'Cocinando con familia en domingo',
+      'Haciendo limpieza con audífonos puestos',
+      'Scrolleando el celular recostada en cama'
+    ]
+  },
+
+  ropas:[
+    {cat:'👕 Casual / Diario',items:[
+      'Jeans claros + camiseta blanca básica + tenis blancos',
+      'Shorts denim + sudadera canguro + tenis casuales',
+      'Joggers grises + crop top ajustado + sneakers',
+      'Jeans rotos en rodillas + top básico + sandalias planas',
+      'Camiseta oversized + biker shorts negros',
+      'Pantalón cargo verde militar + top ajustado',
+      'Jeans claros + camisa abierta sobre básico + tenis',
+      'Falda denim midi + camiseta gráfica de banda',
+      'Leggings negros + sudadera oversized lavanda',
+      'Mono casual de una pieza + tenis de colores'
+    ]},
+    {cat:'👗 Moda / Trendy',items:[
+      'Blazer oversize + crop top + jeans anchos',
+      'Set monocromático todo negro (top + pantalón + saco)',
+      'Pantalón wide leg beige + top estructurado',
+      'Falda larga satinada + top ajustado',
+      'Vestido satinado con escote + tacones de aguja',
+      'Blazer oversize + biker shorts + botas',
+      'Outfit total beige/camel elegante',
+      'Crop top + pantalón de vestir de tiro alto',
+      'Falda plisada midi + suéter de punto',
+      'Vestido midi floral + botas de caño'
+    ]},
+    {cat:'🖤 Elegante / Formal',items:[
+      'Traje completo sastre + camisa de seda',
+      'Vestido negro clásico + tacones de stiletto',
+      'Blazer estructurado + pantalón recto de vestir',
+      'Camisa blanca de algodón + pantalón negro',
+      'Vestido largo de noche + accesorios dorados',
+      'Falda lápiz + blusa elegante con tucked-in',
+      'Traje monocromático gris plomo',
+      'Vestido rojo ajustado + tacones negros',
+      'Camisa satinada color champagne + pantalón formal',
+      'Outfit total blanco: pantalón + blusa + blazer'
+    ]},
+    {cat:'🏖️ Verano',items:[
+      'Shorts de lino + top ligero de tiras',
+      'Vestido floral suelto + sandalias planas',
+      'Falda corta de colores + crop top',
+      'Traje de baño de una pieza + kimono playero',
+      'Vestido suelto de algodón + tenis blancos',
+      'Top off-shoulder + shorts denim',
+      'Conjunto de lino (camisa abierta + short)',
+      'Bikini colorido + pareo de gasa',
+      'Vestido mini de tiras + sandalias de cuña',
+      'Overol corto + camiseta blanca interior'
+    ]},
+    {cat:'🧥 Invierno / Otoño',items:[
+      'Abrigo largo camel + jeans + botas altas de cuero',
+      'Suéter oversized tejido + leggings + botines',
+      'Chaqueta de cuero negra + jeans oscuros',
+      'Gabardina beige clásica + outfit neutro',
+      'Hoodie bajo abrigo abierto de lana',
+      'Suéter de cuello alto + falda plisada + medias',
+      'Puffer jacket de color + joggers grises',
+      'Bufanda XL + abrigo de paño + botas',
+      'Look total gris invierno: sweater + pantalón + abrigo',
+      'Cuello alto negro + pantalón sastre + botas'
+    ]},
+    {cat:'🏋️ Deportivo / Athleisure',items:[
+      'Leggings de cintura alta + sports bra + tenis',
+      'Biker shorts + hoodie cropped + sneakers',
+      'Conjunto de gym completo: top + leggings coordinados',
+      'Pants jogger + sudadera + tenis chunky',
+      'Short deportivo + camiseta de entrenamiento',
+      'Outfit completo de running con reflejantes',
+      'Joggers en color pastel + crop hoodie',
+      'Conjunto monocromático de fitness (todo negro)',
+      'Tenis llamativos con outfit básico simple',
+      'Outfit sporty chic: leggings + blazer corto'
+    ]},
+    {cat:'🧢 Urbano / Streetwear',items:[
+      'Baggy jeans anchos + hoodie de manga holgada',
+      'Cargo pants + camiseta oversized gráfica',
+      'Sudadera + shorts deportivos',
+      'Gorra snapback + outfit completo urbano',
+      'Camiseta gráfica de banda + jeans negros',
+      'Hoodie con chaleco encima tipo Y2K',
+      'Outfit en capas estilo street: camisa + suéter + chaqueta',
+      'Tenis chunky plataforma + outfit básico',
+      'Total black streetwear: todo negro con textura',
+      'Double denim: chamarra de mezclilla + jeans'
+    ]},
+    {cat:'💎 Influencer / Aesthetic',items:[
+      'Outfit neutro total: beige, crema y blanco roto',
+      'Total black minimalista y elegante',
+      'Outfit pastel aesthetic: rosa, lavanda, melocotón',
+      'Look "clean girl": jeans + básico + pelo liso',
+      'Outfit luxury: blazer crema + lentes oversized + bolso',
+      'Estilo Pinterest con capas suaves y texturas',
+      'Outfit con accesorios dorados dominantes',
+      'Look minimalista blanco total muy editorial',
+      'Outfit con bolso statement como pieza protagonista',
+      'Estilo old money: cuello alto + pantalón de vestir'
+    ]},
+    {cat:'🎉 Fiesta / Noche',items:[
+      'Vestido corto ajustado + tacones de aguja',
+      'Top brillante con lentejuelas + falda midi',
+      'Vestido ajustado con cutouts + botines',
+      'Conjunto negro completo + accesorios llamativos',
+      'Crop top de cuero + pantalón de cuero negro',
+      'Vestido con transparencias y forro interior',
+      'Outfit metálico plateado o dorado',
+      'Top estructurado + pantalón elegante de seda',
+      'Look con lentejuelas de pies a cabeza',
+      'Vestido bodycon de punto con escote pronunciado'
+    ]},
+    {cat:'🧠 Creativos / Diferentes',items:[
+      'Outfit totalmente rojo (total red look)',
+      'Outfit con contraste fuerte: blanco y negro',
+      'Estilo retro años 90 con crop top y jeans',
+      'Look vintage años 70 con volados y colores',
+      'Outfit futurista con brillos y plateados',
+      'Outfit con estampados mezclados: floral + rayas',
+      'Outfit inspirado en personaje de película',
+      'Estilo minimal extremo: un solo color y sin accesorios',
+      'Outfit "día a noche" de transición',
+      'Look con pieza protagonista: botas XL o chaqueta única'
+    ]}
+  ],
+
+  poses:[
+    {cat:'📸 Básicas / Naturales',items:[
+      'Mirando a la cámara con sonrisa natural',
+      'Mirando hacia otro lado pensativamente',
+      'Caminando de forma natural y relajada',
+      'Sentada en posición relajada',
+      'De pie con las manos en los bolsillos',
+      'Con los brazos cruzados con actitud',
+      'Apoyada en una pared de forma casual',
+      'Sentada con las piernas cruzadas',
+      'Ajustando la ropa o los accesorios',
+      'Mirada seria y directa a cámara'
+    ]},
+    {cat:'🚶 Movimiento',items:[
+      'Caminando hacia la cámara con actitud',
+      'Caminando de espaldas y girando a ver',
+      'Girando (twirl) con la falda o vestido',
+      'Saltando con alegría',
+      'Trote suave y relajado',
+      'Paso largo estilo pasarela de moda',
+      'Jugando con el viento moviendo el cabello',
+      'Lanzando hojas, arena o confeti al aire',
+      'Bailando con movimiento natural',
+      'Movimiento con efecto blur artístico'
+    ]},
+    {cat:'😎 Actitud / Confianza',items:[
+      'Mirada intensa y penetrante a cámara',
+      'Cara seria con lentes de sol',
+      'Una mano en la cadera con actitud',
+      'Postura dominante y poderosa',
+      'Mirando por encima del hombro',
+      'Ajustando los lentes o gafas',
+      'Señalando a la cámara con el dedo',
+      'Sonrisa pícara de un lado',
+      'Cabeza ligeramente inclinada',
+      'Mirada desafiante con mentón arriba'
+    ]},
+    {cat:'🪞 Espejo / Selfie',items:[
+      'Selfie frente al espejo de cuerpo completo',
+      'Foto del outfit completo en espejo',
+      'Sentada frente al espejo de tocador',
+      'Foto en espejo con flash del celular',
+      'Espejo de cuerpo completo con pose editorial',
+      'Con el celular cubriendo parcialmente la cara',
+      'Espejo del baño aesthetic con plantas',
+      'Selfie casual con expresión espontánea',
+      'Reflejo en vidrio de tienda o ventana',
+      'Mirror pose minimalista sin expresión'
+    ]},
+    {cat:'✋ Manos y Detalles',items:[
+      'Tocando el cabello de forma natural',
+      'Ajustando el reloj o algún accesorio',
+      'Mano en el cuello de forma sensual',
+      'Cubriendo parcialmente la cara con la mano',
+      'Jugando con la tela de la ropa',
+      'Sosteniendo un café o té',
+      'Sosteniendo el bolso o cartera',
+      'Manos en los bolsillos de los jeans',
+      'Tocando los lentes de sol',
+      'Mano extendida hacia la cámara'
+    ]},
+    {cat:'😄 Expresiones Faciales',items:[
+      'Carcajada natural y espontánea',
+      'Sonrisa amplia con dientes',
+      'Cara pensativa mirando al horizonte',
+      'Mirada soñadora y romántica',
+      'Expresión de sorpresa exagerada',
+      'Cara traviesa y divertida',
+      'Sacando la lengua de forma juguetona',
+      'Guiño a la cámara',
+      'Labios ligeramente entreabiertos',
+      'Expresión totalmente relajada y neutral'
+    ]},
+    {cat:'🎬 Creativas / Diferentes',items:[
+      'Silueta completa contra la luz',
+      'Sombra geométrica sobre el rostro',
+      'Múltiples reflejos en espejo roto',
+      'Perspectiva desde abajo (efecto largo)',
+      'Foto desde arriba en picado',
+      'Bloqueando parcialmente el lente con la mano',
+      'Jugando con un objeto cotidiano',
+      'Estilo doble exposición fotográfica',
+      'Congelando el movimiento de un salto',
+      'Pose icónica repetible (tu sello personal)'
+    ]}
+  ],
+
+  oficios:[
+    {ico:'☕',lbl:'Barista / Dueño de Café',outfit:'delantal de cuero, camisa casual, mangas dobladas, cafetería de fondo con máquina espresso'},
+    {ico:'💻',lbl:'Desarrollador de Software',outfit:'sudadera casual, jeans, laptop con código en pantalla, home office'},
+    {ico:'🎨',lbl:'Artista Digital / Ilustrador',outfit:'overol manchado de pintura, estudio de arte con lienzos'},
+    {ico:'📸',lbl:'Fotógrafo Profesional',outfit:'ropa denim casual, correa de cámara DSLR, exterior en hora dorada'},
+    {ico:'👩‍⚕️',lbl:'Médico / Enfermero',outfit:'bata blanca o scrubs de hospital, estetoscopio, pasillo clínico'},
+    {ico:'⚖️',lbl:'Abogado / Litigante',outfit:'traje formal con corbata o pañuelo, maletín, escalinata de juzgado'},
+    {ico:'👩‍🍳',lbl:'Chef Profesional',outfit:'filipina blanca de chef, gorro toque, cocina profesional industrial'},
+    {ico:'🎭',lbl:'Actor / Actriz',outfit:'maquillaje dramático, iluminación de escenario, telón de teatro'},
+    {ico:'🎤',lbl:'Cantante Pop / Artista',outfit:'outfit de escenario brillante, micrófono, luces de concierto'},
+    {ico:'🏋️',lbl:'Entrenador Personal',outfit:'ropa deportiva ajustada, gimnasio con mancuernas de fondo'},
+    {ico:'✈️',lbl:'Piloto / Aeromoza',outfit:'uniforme de aerolínea, terminal de aeropuerto o cabina'},
+    {ico:'🏗️',lbl:'Arquitecto / Diseñador',outfit:'casco de obra, planos bajo el brazo, construcción en proceso'},
+    {ico:'👩‍🔬',lbl:'Científica / Investigadora',outfit:'bata de laboratorio, gafas de seguridad, laboratorio con equipos'},
+    {ico:'📰',lbl:'Periodista / Reportera',outfit:'ropa smart casual, micrófono, conferencia de prensa'},
+    {ico:'🎸',lbl:'Músico de Banda',outfit:'camiseta de banda, instrumento en mano, estudio de grabación'},
+    {ico:'💄',lbl:'Maquilladora Artística',outfit:'delantal con pinceles, espejos con luces, set de maquillaje profesional'},
+    {ico:'🧘',lbl:'Instructora de Yoga',outfit:'leggings de yoga, mat enrollado, exterior al amanecer'},
+    {ico:'👩‍⚖️',lbl:'Jueza / Magistrada',outfit:'toga judicial, mazo, sala del tribunal'},
+    {ico:'🏠',lbl:'Agente Inmobiliaria',outfit:'business casual, apartamento moderno minimalista de fondo'},
+    {ico:'🎬',lbl:'Directora de Cine',outfit:'silla de director, claqueta, set cinematográfico'},
+    {ico:'🌍',lbl:'Travel Blogger / Nómada',outfit:'outfit de aventura, pasaporte en mano, destino internacional'},
+    {ico:'👩‍💼',lbl:'CEO / Directiva Ejecutiva',outfit:'traje sastre de poder, ventanal de rascacielos, vista panorámica'},
+    {ico:'🚒',lbl:'Bombera / Paramédica',outfit:'traje de bombero ignífugo, camión rojo de fondo'},
+    {ico:'👮',lbl:'Policía / Agente Federal',outfit:'uniforme oficial con placa, calle urbana de fondo'},
+    {ico:'🏄',lbl:'Surfista Profesional',outfit:'traje de neoprene o shorts de surf, olas del océano'},
+    {ico:'👩‍🎓',lbl:'Profesora / Catedrática',outfit:'ropa smart casual, pizarrón de fondo, salón de clases'},
+    {ico:'💰',lbl:'Asesora Financiera',outfit:'traje formal, gráficas en pantalla, torre corporativa'},
+    {ico:'🌱',lbl:'Activista / Ambientalista',outfit:'ropa en tonos tierra, naturaleza o marcha de protesta'},
+    {ico:'🎮',lbl:'Gamer Profesional / Streamer',outfit:'silla gaming, setup con RGB y múltiples pantallas, audífonos'},
+    {ico:'✍️',lbl:'Escritora / Novelista',outfit:'suéter acogedor, máquina de escribir o laptop, librería'},
+    {ico:'🏆',lbl:'Atleta Olímpica',outfit:'uniforme del equipo nacional, estadio o podio olímpico'},
+    {ico:'🌟',lbl:'Influencer de Redes Sociales',outfit:'outfit trendy, ring light, espacio aesthetic de grabación'},
+    {ico:'💊',lbl:'Farmacéutica / Química',outfit:'bata blanca, mostrador de farmacia con medicamentos'},
+    {ico:'🔧',lbl:'Mecánica / Ingeniera',outfit:'overol de trabajo, taller mecánico con herramientas'},
+    {ico:'🎻',lbl:'Músico Clásico / Orquesta',outfit:'vestimenta de gala negra, escenario de orquesta filarmónica'},
+    {ico:'🚀',lbl:'Astronauta / Ingeniera Espacial',outfit:'traje espacial blanco, rampa de lanzamiento o estación espacial'},
+    {ico:'🍷',lbl:'Sommelier / Enóloga',outfit:'delantal elegante, bodega o viñedo con barricas de vino'},
+    {ico:'💇',lbl:'Estilista / Peluquera',outfit:'delantal con tijeras, salón de belleza iluminado'},
+    {ico:'📦',lbl:'Emprendedora / Startup',outfit:'ropa smart casual, laptop, espacio de coworking moderno'},
+    {ico:'🎭',lbl:'Diseñadora de Moda',outfit:'estudio de costura, telas y bocetos, pasarela de fondo'},
+    {ico:'🔬',lbl:'Bioquímica / Biotecnóloga',outfit:'bata de laboratorio, pipetas, laboratorio de investigación'},
+    {ico:'🚀',lbl:'Fundadora Tech / Silicon Valley',outfit:'sudadera de empresa tech, pizarrón con ideas, oficina startup'},
+    {ico:'🌊',lbl:'Bióloga Marina',outfit:'traje de neoprene, equipo de buceo, arrecife coralino'},
+    {ico:'🎪',lbl:'Acróbata / Artista de Circo',outfit:'maillot artístico, carpa de circo con luces'},
+    {ico:'🦷',lbl:'Dentista / Odontóloga',outfit:'bata y cubrebocas, consultorio dental iluminado'},
+    {ico:'📱',lbl:'Desarrolladora de Apps',outfit:'casual, múltiples monitores con código, startup tech'},
+    {ico:'🌺',lbl:'Florista / Arreglista Floral',outfit:'delantal con flores, tienda de flores llena de colores'},
+    {ico:'🍕',lbl:'Dueña de Restaurante',outfit:'delantal de cocina, restaurante lleno de clientes al fondo'},
+    {ico:'🏰',lbl:'Curadora de Arte / Museógrafa',outfit:'ropa elegante, galería de arte con obras famosas'},
+    {ico:'🐾',lbl:'Veterinaria / Zooterapeuta',outfit:'bata de clínica, consultorio veterinario con mascotas'},
+    {ico:'🎤',lbl:'Comediante Stand-up',outfit:'ropa casual bajo el foco, micrófono, foro de comedia'},
+    {ico:'📚',lbl:'Bibliotecaria / Archivista',outfit:'ropa cozy con lentes, estantes llenos de libros antiguos'},
+    {ico:'🌐',lbl:'Diplomática / Embajadora',outfit:'traje formal elegante, sala de conferencias con banderas'},
+    {ico:'🏡',lbl:'Diseñadora de Interiores',outfit:'casual chic, tablero de inspiración, interior de lujo'},
+    {ico:'🎯',lbl:'Directora de Marketing',outfit:'business casual, presentación con métricas, sala de juntas'},
+    {ico:'🩸',lbl:'Médica de Urgencias (ER)',outfit:'scrubs quirúrgicos, sala de emergencias dramática'},
+    {ico:'🌍',lbl:'Política / Funcionaria Pública',outfit:'traje formal, podio con micrófono, conferencia de prensa'},
+    {ico:'🎓',lbl:'Estudiante de Doctorado',outfit:'casual universitario, campus con edificios históricos'},
+    {ico:'🏦',lbl:'Banquera de Inversión',outfit:'traje de poder, distrito financiero, edificio corporativo'},
+    {ico:'🌮',lbl:'Vendedora de Comida Callejera',outfit:'delantal casual, carrito de comida colorido, calle animada'},
+    {ico:'🎸',lbl:'Integrante de Banda de Rock',outlet:'merch de la banda, backstage, venue de concierto'},
+    {ico:'🦸',lbl:'Superheroína (Cosplay)',outfit:'traje de superheroína, pose heroica dramática'},
+    {ico:'👑',lbl:'Aristocrática / Realeza',outfit:'vestido de gala o traje formal de palacio, edificio majestuoso'},
+    {ico:'🏋️',lbl:'Fisicoculturista / Atleta',outfit:'ropa de competencia, escenario de competencia con luces'},
+    {ico:'🌟',lbl:'Celebridad de Hollywood',outfit:'look de alfombra roja, premier cinematográfica con fotógrafos'},
+    {ico:'✊',lbl:'Activista de Derechos Humanos',outfit:'ropa de protesta, marcha con carteles y megáfono'},
+    {ico:'🎬',lbl:'YouTuber / Creadora de Contenido',outfit:'outfit trendy casual, set de filmación casero aesthetic'},
+    {ico:'🩺',lbl:'Psicóloga / Terapeuta',outfit:'ropa smart casual, consultorio acogedor con plantas'},
+    {ico:'🌴',lbl:'Guía de Turismo',outfit:'ropa práctica outdoor, monumento o zona turística icónica'},
+    {ico:'🏆',lbl:'Entrenadora Deportiva',outfit:'pants de equipo técnico, campo de entrenamiento'},
+    {ico:'🖼️',lbl:'Pintora / Artista Plástica',outfit:'overol con manchas de pintura, estudio de pintura lleno de colores'}
+  ],
+
+  piercings:[
+    'Fosa nasal (nostril)','Septum (tabique nasal)','Ceja','Labio inferior',
+    'Monroe (sobre el labio)','Lengua','Lóbulo de oreja','Hélix (cartílago superior)',
+    'Trago (tragus)','Industrial (barra transversal)','Daith (cartílago interno)',
+    'Ombligo (belly button)','Pezón','Puente de la nariz','Spider bites (dos en labio)',
+    'Snake bites (dos en labio)','Medusa (philtrum)','Mejilla (cheek)','Pecho superficial','Clavícula'
+  ],
+
+  marcas:[
+    'Pecas ligeras sobre la nariz y mejillas',
+    'Pecas densas por toda la cara y hombros',
+    'Marca de nacimiento (lunar grande) en mejilla',
+    'Cicatriz pequeña sobre la ceja',
+    'Marca de quemadura en el brazo',
+    'Parches de vitiligo en la piel',
+    'Lunares dispersos de forma natural',
+    'Ojeras marcadas y oscuras naturales',
+    'Enrojecimiento de rosacea en mejillas',
+    'Manchas solares en el escote',
+    'Cicatrices de acné en la mandíbula',
+    'Queloide en hombro o cuello',
+    'Separación entre los dientes frontales',
+    'Sonrisa asimétrica natural',
+    'Nariz ligeramente torcida',
+    'Párpado ligeramente caído',
+    'Tendencia a unibrow natural',
+    'Cejas de diferente grosor natural',
+    'Líneas de expresión marcadas',
+    'Textura de poros visible de cerca'
+  ],
+
+  texturaPiel:[
+    'textura de piel completamente natural sin retoques',
+    'poros visibles en nariz y mejillas',
+    'imperfecciones sutiles de piel',
+    'tono de piel ligeramente irregular',
+    'pequeños granitos o blemishes naturales',
+    'marcas tenues de acné antiguo',
+    'freckles diminutos y dispersos',
+    'líneas de expresión finas',
+    'textura realista bajo los ojos',
+    'brillo natural suave de la piel',
+    'piel sin retoque de filtro de belleza',
+    'detalle de piel humana auténtica',
+    'micro-imperfecciones realistas',
+    'textura facial completamente realista',
+    'rojez natural en mejillas',
+    'capilares sutilmente visibles',
+    'asimetría natural del rostro',
+    'profundidad tridimensional de la piel'
+  ],
+
+  accesorios:{
+    mujer:[
+      'Lentes de sol oversized','Lentes de sol cat-eye pequeños','Sombrero bucket',
+      'Boina francesa','Gorra beisbolera','Sombrero de ala ancha',
+      'Pañuelo de seda en el cuello','Pañuelo en el cabello',
+      'Aretes de aro grandes','Aretes de studs dorados pequeños',
+      'Aretes colgantes largos','Aretes de perlas',
+      'Anillos apilados en varios dedos','Anillo statement solitario',
+      'Pulsera de tenis con brillantes','Pulsera cadena gruesa',
+      'Cadena de oro fina','Collar de perlas',
+      'Collares en capas superpuestos','Choker de terciopelo negro',
+      'Tote bag de lona','Mini bag de cuero',
+      'Clutch para noche','Bolso crossbody pequeño',
+      'Bucket bag de cuero','Cinturón de cuero clásico',
+      'Cinturón de cadena metálica','Gorro tejido tipo beanie',
+      'Clip para cabello (claw clip)','Listón de seda en el cabello',
+      'Diadema de carey','Pasadores decorativos',
+      'Mini mochila de cuero','Reloj de pulsera dorado',
+      'Reloj plateado minimalista','Smartwatch deportivo',
+      'Tobillera delicada','Cadena corporal (body chain)',
+      'Cinturón de cadera','Aretes de diamante solitario'
+    ],
+    hombre:[
+      'Gorra snapback','Gorra bucket','Beanie tejido de lana',
+      'Fedora de fieltro','Sombrero de ala amplia',
+      'Cadena de oro gruesa','Cadena de plata',
+      'Cadena cubana gruesa','Collar con dije',
+      'Pulsera de cuero tejido','Pulsera de cuentas',
+      'Reloj de lujo (tipo Rolex)','Reloj deportivo',
+      'Anillo de sello (signet ring)','Anillo en dedo meñique',
+      'Anillos apilados','Lentes aviador','Lentes wayfarer',
+      'Lentes oversized cuadrados','Lentes redondos estilo vintage',
+      'Cinturón de cuero trenzado','Cinturón con hebilla metálica',
+      'Mochila urbana','Bolso crossbody de hombre',
+      'Mini bag de cintura (riñonera)','Arete de aro',
+      'Arete de stud','Diamante en el lóbulo',
+      'Ear cuff sin perforación','Pañuelo en el cuello',
+      'Bufanda de lana','Guantes de cuero negro',
+      'Llavero decorativo','AirPods visibles',
+      'Audífonos over-ear','Cadena en la billetera',
+      'Corbata seda','Corbata de moño (bow tie)',
+      'Pañuelo de bolsillo (pocket square)','Pin de solapa'
+    ]
+  },
+
+  expresiones:[
+    'Carcajada genuina y natural','Sonrisa suave con labios cerrados',
+    'Sonrisa amplia con dientes','Smirk pícaro de un lado',
+    'Cara neutral y relajada totalmente','Pensativa mirando hacia otro lado',
+    'Mordiendo el labio inferior suavemente','Boca abierta de sorpresa',
+    'Ceño fruncido pensando','Ojos muy abiertos de asombro',
+    'Sonrisa tímida a medias','Mirada seria e intensa de modelo',
+    'Mirando hacia abajo con melancolía','Expresión espontánea sin pose',
+    'Ojos entrecerrados con sonrisa genuina','Puchero travieso',
+    'Mirando de lado con timidez','Mentón arriba con confianza',
+    'Sacando la lengua de forma juguetona','Guiño a la cámara'
+  ],
+
+  modas:[
+    'Spread de revista de moda editorial',
+    'Concepto de portada de álbum musical',
+    'Detrás de cámaras (behind the scenes)',
+    'Fotografía conceptual de arte contemporáneo',
+    'Técnica de doble exposición',
+    'Pintura de luz con larga exposición',
+    'Retrato bajo el agua con apnea',
+    'Cielo nocturno con Vía Láctea de fondo',
+    'Bomba de humo de colores explosiva',
+    'Explosión de confeti y brillantina',
+    'Proyección de imágenes sobre el cuerpo',
+    'Fotografía infrarroja en tonos rojizos',
+    'Reflejos holográficos en la cara',
+    'Editorial minimal con espacio negativo',
+    'Espejo roto en mosaico creativo',
+    'Juego de sombras y geometría',
+    'Retrato con geles de color en el estudio',
+    'Efecto tilt-shift (mundo en miniatura)',
+    'Flip de cabello en cámara lenta',
+    'Foto de levitación (composite)',
+    'Caminando por una avenida con rascacielos',
+    'Cruzando la calle tipo "street style"',
+    'Rooftop de edificio al atardecer',
+    'Frente a grafitis artísticos urbanos',
+    'En escaleras mecánicas del centro comercial',
+    'Bosque con luz filtrada entre árboles',
+    'Campo de lavanda o girasoles',
+    'Cascada natural con luz difusa',
+    'Playa al amanecer con niebla',
+    'Picnic en el parque con flores',
+    'Desayuno en cama con café latte',
+    'Working desde cafetería aesthetic',
+    'Yoga en el balcón al amanecer',
+    'Preparándose frente al tocador iluminado',
+    'Leyendo en biblioteca antigua',
+    'En concierto de música en vivo',
+    'Festival de comida con puestos coloridos',
+    'Mercado de pulgas con antigüedades',
+    'Inauguración de galería de arte',
+    'Road trip en la carretera abierta',
+    'En el aeropuerto con maleta elegante',
+    'Ventana de avión sobre las nubes',
+    'Calle empedrada europea al atardecer',
+    'Ruinas arqueológicas antiguas',
+    'Hotel boutique con alberca infinita',
+    'Mercado local de colores en Asia',
+    'Callejón pintoresco con flores en balcones',
+    'Safari con animales de fondo',
+    'Nevadas con outfit de invierno',
+    'Desierto al atardecer con dunas'
+  ],
+
+  objetos:[
+    'Taza de café humeante','Laptop con pantalla activa','Libro abierto',
+    'Smartphone','Audífonos inalámbricos','Agenda o libreta de notas',
+    'Lentes de sol','Botella de agua estética','Vela aromática',
+    'Almohadas decorativas','Bolso de mano','Gorra o sombrero',
+    'Pañuelo de seda','Reloj de pulsera','Cinturón de cuero',
+    'Tacones llamativos','Tenis de diseñador','Chaqueta statement',
+    'Café con arte latte','Smoothie de frutas tropicales',
+    'Helado de cono artesanal','Pizza en caja abierta',
+    'Donas coloridas','Copa de vino tinto','Coctel de colores',
+    'Desayuno aesthetic (hot cakes, fruta, café)','Fresas cubiertas de chocolate',
+    'Postre colorido de pastelería','Plantas o suculentas',
+    'Ramo de flores frescas','Hojas secas de otoño',
+    'Concha de mar grande','Arena de playa','Cámara fotográfica análoga',
+    'Fotos Polaroid','Patineta/Skateboard','Guitarra acústica',
+    'Discos de vinilo','Paleta de pinturas','Pila de libros',
+    'Revista de moda','Periódico del día','Caja de joyas abierta',
+    'Espejo de mano','Paraguas colorido','Maleta de viaje vintage',
+    'Mat de yoga enrollado','Pesas o ligas de resistencia',
+    'Bicicleta vintage','Casco de motocicleta','Bolsas de compras',
+    'Caja de regalo con moño','Pastel de cumpleaños con velas',
+    'Macarons de colores pastel','Matcha latte con espuma',
+    'Café helado (iced coffee)','Vitaminas y suplementos',
+    'Mascarilla facial de hoja (sheet mask)','Colección de cristales',
+    'Cartas de tarot sobre la mesa','Tablero de ajedrez',
+    'Perfume de lujo en frasco elegante','Trofeo o reconocimiento',
+    'Pasaporte con sellos','Tarjeta de abordaje',
+    'Mapa desplegado','Brújula de latón',
+    'Binoculares de teatro','Cámara de cine súper 8'
+  ],
+
+  combos:[
+    'Rooftop + traje sastre + pose seria + reloj de lujo',
+    'Parque + outfit casual + sentada + audífonos',
+    'Feria de pueblo + outfit divertido + movimiento + algodón de azúcar',
+    'Cafetería + outfit oscuro + pensativa + libro',
+    'Mirador montaña + outfit neutro + de espaldas + paisaje',
+    'Alberca + swimwear + relajada + lentes de sol',
+    'Estudio blanco + fondo limpio + pose de modelo',
+    'Calle + denim total + caminando + bolso',
+    'Playa + pareo + sentada en arena',
+    'Campo de flores + vestido + girando + flores',
+    'Ciudad + blazer + caminando con celular',
+    'Escaleras + outfit negro + actitud + lentes',
+    'Auto deportivo + elegante + apoyada + reloj',
+    'Restaurante + casual chic + sonrisa + copa',
+    'Hotel lujo + pijama seda + espejo + celular',
+    'Playa + outfit blanco + saltando + sombrero',
+    'Lluvia + trench coat + caminando + paraguas',
+    'Cafetería cozy + junto a ventana + latte',
+    'Bosque + hoodie + sentada + mochila',
+    'Rooftop + vestido rojo + pose fuerte + copa',
+    'Calle + look años 90 + caminando + lentes',
+    'Parque + sport + estirando + botella de agua',
+    'Desierto + outfit negro + actitud + sol detrás',
+    'Playa + atardecer + silueta + sombrero',
+    'Museo + outfit elegante + perfil + bolso',
+    'Ciudad de noche + negro + actitud + luces bokeh',
+    'Aeropuerto + travel look + caminando + maleta',
+    'Ciudad + streetwear + pose + gorra snapback',
+    'Cafetería + minimal + pensativa + café',
+    'Montaña + sport + mirando el horizonte + mochila'
+  ],
+
+  negativos:[
+    'persona diferente','rostro diferente','cara distorsionada',
+    'dedos extras o deformes','manos mutadas','piel de plástico',
+    'aspecto CGI irreal','dibujo animado (cartoon)','ilustración',
+    'filtro de belleza extremo','cuerpo irreal o deformado',
+    'proporciones incorrectas','cara borrosa o fuera de foco',
+    'baja calidad pixelada','artefactos digitales',
+    'ruido excesivo de imagen','sobreexposición quemada',
+    'marca de agua por defecto','texto indeseado',
+    'logo visible','clon de persona','múltiples caras',
+    'deformaciones anatómicas','ojos asimétricamente incorrectos',
+    'body horror o partes extras'
+  ]
+};
+
+/* ============================================================
+   ESTADO GLOBAL
+   ============================================================ */
+let st = {
+  genero:'female',
+  tono: D.tonos[3],
+  hairStyle:'', hairColor:'',
+  useCustomOutfit:false, customOutfit:'', outfitPreset:'gothic',
+  useBase:true,
+  shotType:'', camType:'',
+  escenarios:[],
+  lighting:'', filter:'',
+  outfit:'', pose:'',
+  oficio:null,
+  tatStyle:'', tatZones:[],
+  piercings:[], marcas:[], texturaPiel:[...D.texturaPiel],
+  accesorios:[],
+  expresiones:[], cotidiano:[], modas:[], objetos:[], combos:[],
+  negativos:[...D.negativos],
+  resolucion:'2K', formato:'JPG', aspectRatio:'9:16',
+  useWM:false, wmText:'', wmPos:'esquina inferior derecha',
+  fmtOutput:'texto',
+  historial:[],
+  device:'mobile'
+};
+
+/* ============================================================
+   IDIOMAS
+   ============================================================ */
+let lang = 'es';
+const COPY = {
+  es:{copied:'✓ ¡Copiado al portapapeles!'},
+  en:{copied:'✓ Copied to clipboard!'}
+};
+
+function setLang(l,btn){
+  lang=l;
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('toast').textContent = COPY[l].copied;
+}
+
+/* ============================================================
+   DEVICE MODE
+   ============================================================ */
+function setMode(mode, btn){
+  // Remove all mode classes
+  document.body.classList.remove('mode-mobile','mode-tablet','mode-desktop');
+  document.body.classList.add('mode-'+mode);
+  st.device = mode;
+  // Update topbar device buttons
+  document.querySelectorAll('.dev-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  else {
+    document.querySelectorAll('.dev-btn').forEach(b=>{
+      if(b.textContent.trim().toLowerCase().includes(mode)) b.classList.add('active');
+    });
+  }
+  // Close sidebar overlay on mobile
+  if(mode==='mobile'){
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('open');
+  }
+  // Save preference
+  localStorage.setItem('pcDevice', mode);
+}
+
+/* ============================================================
+   SIDEBAR TOGGLE
+   ============================================================ */
+function toggleSidebar(){
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('sidebar-overlay');
+  const open = sb.classList.toggle('open');
+  ov.classList.toggle('open', open);
+}
+
+/* ============================================================
+   TABS
+   ============================================================ */
+function showTab(id, btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  else {
+    document.querySelectorAll('.tab-btn').forEach(b=>{
+      if(b.getAttribute('onclick') && b.getAttribute('onclick').includes("'"+id+"'")) b.classList.add('active');
+    });
+  }
+  // Close sidebar on mobile after tab change
+  if(st.device==='mobile'){
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('open');
+  }
+}
+
+/* ============================================================
+   DROP SECTIONS
+   ============================================================ */
+function togDrop(head){
+  const body = head.nextElementSibling;
+  const arr = head.querySelector('.drop-arr');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  arr.classList.toggle('open', !isOpen);
+  head.classList.toggle('open', !isOpen);
+}
+
+/* ============================================================
+   CHIPS / TOGGLES
+   ============================================================ */
+function selChip(el, group, val){
+  const parent = el.closest('.chips');
+  parent.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  if(group==='res') st.resolucion=val;
+  else if(group==='fmt') st.formato=val;
+  else if(group==='ar') st.aspectRatio=val;
+  updSummary();
+}
+
+function togChip(el, group, val){
+  el.classList.toggle('active');
+  const active = el.classList.contains('active');
+  if(group==='tat'){
+    if(active) st.tatZones.push(val);
+    else st.tatZones = st.tatZones.filter(x=>x!==val);
+  }
+  updSummary();
+}
+
+/* ============================================================
+   GÉNERO
+   ============================================================ */
+function setGenero(g, el){
+  st.genero = g;
+  document.querySelectorAll('#card-fem,#card-mas').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  updSummary();
+}
+
+/* ============================================================
+   SKIN SWATCHES
+   ============================================================ */
+function buildSkin(){
+  const row = document.getElementById('skin-row');
+  D.tonos.forEach((t,i)=>{
+    const sw = document.createElement('div');
+    sw.className = 'swatch' + (i===3?' active':'');
+    sw.style.background = t.bg;
+    sw.title = t.lbl;
+    sw.onclick = ()=>{
+      document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
+      sw.classList.add('active');
+      st.tono = t;
+      document.getElementById('skin-lbl').textContent = t.lbl;
+      updSummary();
+    };
+    row.appendChild(sw);
+  });
+}
+
+/* ============================================================
+   NEGATIVE PROMPTS
+   ============================================================ */
+function buildNegativos(){
+  const c = document.getElementById('neg-list');
+  D.negativos.forEach(n=>{
+    const row = document.createElement('div');
+    row.className = 'trow';
+    row.innerHTML = `<div class="tlabel" style="font-size:11px">${n}</div>
+      <label class="tog"><input type="checkbox" checked onchange="togNeg('${n}',this.checked)">
+      <div class="tog-track"></div><div class="tog-thumb"></div></label>`;
+    c.appendChild(row);
+  });
+}
+
+function togNeg(n, on){
+  if(on && !st.negativos.includes(n)) st.negativos.push(n);
+  else st.negativos = st.negativos.filter(x=>x!==n);
+}
+
+/* ============================================================
+   BUILD SCENARIO GRIDS
+   ============================================================ */
+function buildSC(containerId, items, stateKey){
+  const c = document.getElementById(containerId);
+  if(!c) return;
+  c.innerHTML = '';
+  items.forEach(item=>{
+    const d = document.createElement('div');
+    d.className = 'sc-item';
+    d.textContent = item;
+    d.onclick = ()=>{
+      d.classList.toggle('active');
+      const on = d.classList.contains('active');
+      if(on) st[stateKey].push(item);
+      else st[stateKey] = st[stateKey].filter(x=>x!==item);
+      updSummary();
+    };
+    c.appendChild(d);
+  });
+}
+
+/* ============================================================
+   BUILD ROPAS
+   ============================================================ */
+function buildRopas(){
+  const c = document.getElementById('ropas-container');
+  D.ropas.forEach(cat=>{
+    const sec = document.createElement('div');
+    sec.className = 'drop';
+    const head = document.createElement('div');
+    head.className = 'drop-head';
+    head.innerHTML = `<div class="drop-title">${cat.cat}</div><div class="drop-arr">›</div>`;
+    head.onclick = ()=>togDrop(head);
+    const body = document.createElement('div');
+    body.className = 'drop-body';
+    const grid = document.createElement('div');
+    grid.className = 'sc-grid';
+    cat.items.forEach(item=>{
+      const d = document.createElement('div');
+      d.className = 'sc-item ropa-item';
+      d.textContent = item;
+      d.onclick = ()=>{
+        document.querySelectorAll('.ropa-item').forEach(x=>x.classList.remove('active'));
+        d.classList.add('active');
+        st.outfit = item;
+        updSummary();
+      };
+      grid.appendChild(d);
+    });
+    body.appendChild(grid);
+    sec.appendChild(head);
+    sec.appendChild(body);
+    c.appendChild(sec);
+  });
+}
+
+/* ============================================================
+   BUILD POSES
+   ============================================================ */
+function buildPoses(){
+  const c = document.getElementById('poses-container');
+  D.poses.forEach(cat=>{
+    const sec = document.createElement('div');
+    sec.className = 'drop';
+    const head = document.createElement('div');
+    head.className = 'drop-head';
+    head.innerHTML = `<div class="drop-title">${cat.cat}</div><div class="drop-arr">›</div>`;
+    head.onclick = ()=>togDrop(head);
+    const body = document.createElement('div');
+    body.className = 'drop-body';
+    const grid = document.createElement('div');
+    grid.className = 'sc-grid';
+    cat.items.forEach(item=>{
+      const d = document.createElement('div');
+      d.className = 'sc-item pose-item';
+      d.textContent = item;
+      d.onclick = ()=>{
+        document.querySelectorAll('.pose-item').forEach(x=>x.classList.remove('active'));
+        d.classList.add('active');
+        st.pose = item;
+        updSummary();
+      };
+      grid.appendChild(d);
+    });
+    body.appendChild(grid);
+    sec.appendChild(head);
+    sec.appendChild(body);
+    c.appendChild(sec);
+  });
+}
+
+/* ============================================================
+   BUILD OFICIOS
+   ============================================================ */
+function buildOficios(){
+  const c = document.getElementById('jobs-grid');
+  D.oficios.forEach(j=>{
+    const d = document.createElement('div');
+    d.className = 'job-card job-item';
+    d.innerHTML = `<span class="jico">${j.ico}</span><span>${j.lbl}</span>`;
+    d.onclick = ()=>{
+      document.querySelectorAll('.job-item').forEach(x=>x.classList.remove('active'));
+      d.classList.add('active');
+      st.oficio = j;
+      updSummary();
+    };
+    c.appendChild(d);
+  });
+}
+
+/* ============================================================
+   BUILD MC GRIDS
+   ============================================================ */
+function buildMC(id, items, key, defaultOn){
+  const c = document.getElementById(id);
+  if(!c) return;
+  c.innerHTML = '';
+  if(defaultOn) st[key] = [...items];
+  items.forEach(item=>{
+    const lbl = document.createElement('label');
+    lbl.className = 'mc-item';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!defaultOn;
+    cb.onchange = ()=>{
+      if(cb.checked && !st[key].includes(item)) st[key].push(item);
+      else st[key] = st[key].filter(x=>x!==item);
+    };
+    lbl.appendChild(cb);
+    lbl.appendChild(document.createTextNode(' '+item));
+    c.appendChild(lbl);
+  });
+}
+
+/* ============================================================
+   EXTRAS
+   ============================================================ */
+function buildExtras(){
+  buildMC('piercings-grid', D.piercings, 'piercings', false);
+  buildMC('marcas-grid', D.marcas, 'marcas', false);
+  buildMC('skin-tex-grid', D.texturaPiel, 'texturaPiel', true);
+  const accList = [...D.accesorios.mujer, ...D.accesorios.hombre];
+  buildMC('accesorios-grid', accList, 'accesorios', false);
+  buildSC('expresiones-grid', D.expresiones, 'expresiones');
+  buildSC('modas-grid', D.modas, 'modas');
+  buildSC('objetos-grid', D.objetos, 'objetos');
+  buildSC('combos-grid', D.combos, 'combos');
+}
+
+/* ============================================================
+   FILTROS DE BÚSQUEDA
+   ============================================================ */
+function filtrarRopas(q){
+  document.querySelectorAll('.ropa-item').forEach(el=>{
+    const v = el.textContent.toLowerCase();
+    el.style.display = !q || v.includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+function filtrarPoses(q){
+  document.querySelectorAll('.pose-item').forEach(el=>{
+    el.style.display = !q || el.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+function filtrarOficios(q){
+  document.querySelectorAll('.job-item').forEach(el=>{
+    el.style.display = !q || el.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+function filtrarAccesorios(q){
+  document.querySelectorAll('#accesorios-grid .mc-item').forEach(el=>{
+    el.style.display = !q || el.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+function filtrarGrid(id, q){
+  document.querySelectorAll('#'+id+' .sc-item').forEach(el=>{
+    el.style.display = !q || el.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+
+/* ============================================================
+   WATERMARK
+   ============================================================ */
+function toggleWM(on){
+  st.useWM = on;
+  document.getElementById('wm-config').style.display = on ? 'block' : 'none';
+}
+
+function toggleCustomOutfit(on){
+  st.useCustomOutfit = on;
+  document.getElementById('custom-outfit-wrap').style.display = on ? 'block' : 'none';
+  document.getElementById('preset-outfit-wrap').style.display = on ? 'none' : 'block';
+}
+
+function updWMPreview(){
+  const t = st.wmText;
+  const p = st.wmPos;
+  document.getElementById('wm-prev').textContent = t
+    ? `"${t}" — ${p}, semitransparente, no invasiva`
+    : 'Vista previa aparecerá aquí';
+}
+
+/* ============================================================
+   SUMMARY
+   ============================================================ */
+function updSummary(){
+  const parts = [];
+  if(st.escenarios.length) parts.push(`${st.escenarios.length} escena${st.escenarios.length>1?'s':''}`);
+  if(st.outfit) parts.push('ropa');
+  if(st.pose) parts.push('pose');
+  if(st.oficio) parts.push('oficio');
+  if(st.tatStyle) parts.push('tatuaje');
+  document.getElementById('sel-sum').textContent = parts.join(' · ');
+}
+
+/* ============================================================
+   OUTFITS MAP
+   ============================================================ */
+const OUTFITS_ES = {
+  gothic: 'playera gráfica gótica negra ajustada (diseño de calavera, pentagrama y arte oscuro en blanco, cuello redondo, manga corta), minifalda negra bodycon muy ajustada (arriba de la rodilla), botas de plataforma negras con tacón cuadrado y cierre lateral',
+  casual: 'jeans claros de corte recto, camiseta blanca básica, tenis blancos limpios',
+  elegante: 'blazer estructurado sastre, pantalón de vestir de corte recto, tacones de punta, accesorios minimalistas',
+  deportivo: 'leggings de cintura alta, top deportivo ajustado, tenis de running',
+  playa: 'bikini de colores vivos, pareo de gasa ligero, sandalias planas de playa',
+  fiesta: 'vestido corto bodycon, tacones de aguja, accesorios llamativos',
+  streetwear: 'pantalón cargo holgado, hoodie oversized con capucha, tenis chunky plataforma',
+  'del-menu': ''
+};
+
+/* ============================================================
+   TEXTO DEL PROMPT ANCLA
+   ============================================================ */
+const ANCLA_ES = `Usa la imagen de referencia proporcionada como ANCLA PRIMARIA de identidad. Preserva el 100% de la identidad facial: estructura ósea, proporciones y rasgos únicos del sujeto. Mantén consistencia estricta del personaje en todas las generaciones: mismo rostro, forma y color de ojos, nariz, labios y mandíbula; mismo tono de piel y subtono; mismas proporciones corporales; mismo estilo de cabello, línea de nacimiento del pelo, textura e imperfecciones naturales. NO embellezcan ni alteren la identidad. Evitar apariencia plástica, artificial o de piel demasiado suavizada. La piel debe verse realista y natural: incluir poros, textura sutil, líneas finas, micro-imperfecciones; preservar asimetría e irregularidades naturales; mantener cicatrices, marcas de acné, lunares y pecas EXACTAMENTE como en la referencia; conservar tatuajes con forma, ubicación, tamaño y difuminado idénticos. Iluminación y renderizado: sombreado de piel fotorrealista, interacción natural con la luz, sin apariencia cerosa o CGI, evitar sobreexposición y HDR excesivo, tonos cinematográficos pero realistas. Expresión y emoción: micro-expresiones naturales, músculos faciales relajados. Realismo de cámara: lente realista (35mm / 50mm / 85mm), profundidad de campo sutil y natural, sin distorsión de proporciones faciales. Consistencia sobre estilo: aunque el outfit, la pose o el entorno cambien, la persona debe permanecer IDÉNTICA.`;
+
+/* ============================================================
+   GENERADOR DE PROMPT
+   ============================================================ */
+function buildPrompt(){
+  const parts = [];
+  if(st.useBase) parts.push(ANCLA_ES);
+
+  // Sujeto base
+  const genStr = st.genero === 'female' ? 'mujer joven' : 'hombre joven';
+  parts.push(`Fotografía de moda profesional, ${genStr} de 24 años, cara ovalada, cabello liso largo castaño oscuro, cejas gruesas y naturales, ojos almendrados color marrón oscuro, pestañas largas`);
+
+  // Tono piel
+  parts.push(st.tono.val);
+
+  // Cabello
+  if(st.hairStyle) parts.push(`cabello: ${st.hairStyle}`);
+  if(st.hairColor) parts.push(`color de cabello: ${st.hairColor}`);
+
+  // Cuerpo
+  const bodyF = 'cuerpo de modelo influencer, figura en reloj de arena, silueta curvilínea, pecho lleno, caderas anchas, cintura delgada, piernas largas y tonificadas, brazos tonificados';
+  const bodyM = 'físico atlético masculino, hombros anchos, cintura delgada, brazos musculosos y tonificados';
+  parts.push(st.genero==='female' ? bodyF : bodyM);
+
+  // Outfit
+  let outfitStr = '';
+  if(st.useCustomOutfit && st.customOutfit){
+    outfitStr = st.customOutfit;
+  } else if(st.outfit){
+    outfitStr = st.outfit;
+  } else {
+    outfitStr = OUTFITS_ES[st.outfitPreset] || OUTFITS_ES.gothic;
+  }
+  if(outfitStr) parts.push(`vistiendo: ${outfitStr}`);
+
+  // Oficio
+  if(st.oficio) parts.push(`profesión: ${st.oficio.lbl}, vestimenta: ${st.oficio.outfit}`);
+
+  // Pose
+  if(st.pose) parts.push(`pose: ${st.pose}`);
+
+  // Tipo de toma
+  if(st.shotType) parts.push(st.shotType);
+
+  // Fuente de cámara
+  if(st.camType) parts.push(`estilo de foto: ${st.camType}`);
+
+  // Escenarios (máx 3)
+  if(st.escenarios.length) parts.push(`escenario: ${st.escenarios.slice(0,3).join(', ')}`);
+
+  // Cotidiano
+  const cots = [...st.cotidiano];
+  if(cots.length) parts.push(`situación: ${cots[0]}`);
+
+  // Expresiones
+  if(st.expresiones.length) parts.push(`expresión: ${st.expresiones[0]}`);
+
+  // Iluminación
+  if(st.lighting) parts.push(`iluminación: ${st.lighting}`);
+
+  // Filtro
+  if(st.filter) parts.push(`color grading: ${st.filter}`);
+
+  // Tatuajes
+  if(st.tatStyle){
+    const zones = st.tatZones.length ? st.tatZones.join(' y ') : 'antebrazo';
+    parts.push(`tatuaje estilo ${st.tatStyle} en ${zones}`);
+  }
+
+  // Piercings
+  if(st.piercings.length) parts.push(`piercings: ${st.piercings.join(', ')}`);
+
+  // Marcas únicas
+  if(st.marcas.length) parts.push(st.marcas.slice(0,3).join(', '));
+
+  // Textura piel
+  if(st.texturaPiel.length) parts.push(st.texturaPiel.slice(0,6).join(', '));
+
+  // Accesorios
+  if(st.accesorios.length) parts.push(`accesorios: ${st.accesorios.slice(0,4).join(', ')}`);
+
+  // Objetos
+  if(st.objetos.length) parts.push(`sosteniendo/portando: ${st.objetos.slice(0,2).join(' y ')}`);
+
+  // Modas/creatividad
+  if(st.modas.length) parts.push(st.modas[0]);
+
+  // Combos variados
+  if(st.combos.length) parts.push(`escena variada: ${st.combos[0]}`);
+
+  // Calidad
+  parts.push(`enfoque nítido, fotorrealista, ${st.resolucion}, Canon EOS R5, lente 85mm, f/1.8, editorial de moda profesional`);
+
+  // Marca de agua
+  if(st.useWM && st.wmText){
+    parts.push(`marca de agua sutil con texto "${st.wmText}" en ${st.wmPos}, semitransparente, no invasiva pero detectable`);
+  }
+
+  const prompt = parts.join(', ');
+  const neg = st.negativos.join(', ');
+  return { prompt, neg };
+}
+
+/* ============================================================
+   FORMATEAR OUTPUT
+   ============================================================ */
+function formatOutput({prompt, neg}, variante){
+  const seed = variante ? ' --seed ' + Math.floor(Math.random()*99999) : '';
+  const ar = st.aspectRatio.replace(':','_');
+
+  if(st.fmtOutput === 'midjourney'){
+    return `${prompt}\n\n--no ${neg} --ar ${st.aspectRatio} --style raw --q 2${seed}`;
+  }
+  if(st.fmtOutput === 'json'){
+    return JSON.stringify({
+      prompt,
+      negative_prompt: neg,
+      configuracion:{
+        resolucion: st.resolucion,
+        formato: st.formato,
+        aspect_ratio: st.aspectRatio
+      },
+      modelo:{
+        genero: st.genero==='female'?'Mujer':'Hombre',
+        tono_piel: st.tono.lbl
+      },
+      selecciones:{
+        escenarios: st.escenarios,
+        outfit: st.outfit || st.outfitPreset,
+        pose: st.pose || null,
+        oficio: st.oficio?.lbl || null,
+        tatuaje: st.tatStyle || null,
+        zonas_tatuaje: st.tatZones,
+        piercings: st.piercings,
+        iluminacion: st.lighting || null,
+        filtro: st.filter || null
+      },
+      marca_agua: st.useWM ? {texto:st.wmText, posicion:st.wmPos} : null,
+      generado: new Date().toLocaleString('es-MX')
+    }, null, 2);
+  }
+  // Texto
+  return `📝 PROMPT:\n${prompt}${neg ? '\n\n🚫 NEGATIVE:\n'+neg : ''}`;
+}
+
+/* ============================================================
+   GENERACIÓN
+   ============================================================ */
+function generarPrompt(){
+  const result = buildPrompt();
+  const fmt = formatOutput(result, false);
+  renderOutput([{label:'Prompt Generado', content:fmt, raw:result}]);
+  guardarHistorial(result.prompt);
+}
+
+function generar3(){
+  const results = [];
+  for(let i=0;i<3;i++){
+    const r = buildPrompt();
+    results.push({label:`Variación ${i+1}`, content:formatOutput(r,true), raw:r});
+  }
+  renderOutput(results);
+}
+
+function promptAleatorio(){
+  // Escenario aleatorio
+  const cats = Object.keys(D.escenarios);
+  const cat = cats[Math.floor(Math.random()*cats.length)];
+  const esc = D.escenarios[cat];
+  st.escenarios = [esc[Math.floor(Math.random()*esc.length)]];
+
+  // Pose aleatoria
+  const poseCat = D.poses[Math.floor(Math.random()*D.poses.length)];
+  st.pose = poseCat.items[Math.floor(Math.random()*poseCat.items.length)];
+
+  // Iluminación aleatoria
+  const luces = ['Luz natural suave','Hora dorada (golden hour)','Hora azul (blue hour)','Luz de estudio con softbox','Luces neón de colores','Ring light estilo selfie'];
+  st.lighting = luces[Math.floor(Math.random()*luces.length)];
+
+  // Outfit aleatorio
+  const ropaCat = D.ropas[Math.floor(Math.random()*D.ropas.length)];
+  st.outfit = ropaCat.items[Math.floor(Math.random()*ropaCat.items.length)];
+
+  // Expresión aleatoria
+  st.expresiones = [D.expresiones[Math.floor(Math.random()*D.expresiones.length)]];
+
+  const result = buildPrompt();
+  renderOutput([{label:'🎲 Prompt Aleatorio', content:formatOutput(result,true), raw:result}]);
+  guardarHistorial(result.prompt);
+
+  // Visual feedback: deselect previous
+  document.querySelectorAll('.pose-item,.ropa-item').forEach(x=>x.classList.remove('active'));
+  updSummary();
+}
+
+/* ============================================================
+   RENDER OUTPUT
+   ============================================================ */
+function renderOutput(items){
+  const c = document.getElementById('output-area');
+  c.innerHTML = '';
+  items.forEach(item=>{
+    const box = document.createElement('div');
+    box.className = 'out-box';
+    box.innerHTML = `<div class="out-label">✦ ${escHtml(item.label)}</div><pre>${escHtml(item.content)}</pre>`;
+    const actions = document.createElement('div');
+    actions.className = 'out-actions';
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'btn btn-secondary btn-sm';
+    copyBtn.innerHTML = '📋 Copiar';
+    copyBtn.onclick = ()=>{ navigator.clipboard.writeText(item.content); showToast(); };
+    actions.appendChild(copyBtn);
+    // Copiar solo el prompt (sin negative)
+    if(item.raw){
+      const cpPrompt = document.createElement('button');
+      cpPrompt.className = 'btn btn-ghost btn-sm';
+      cpPrompt.textContent = '📄 Solo Prompt';
+      cpPrompt.onclick = ()=>{ navigator.clipboard.writeText(item.raw.prompt); showToast(); };
+      actions.appendChild(cpPrompt);
+    }
+    box.appendChild(actions);
+    c.appendChild(box);
+  });
+}
+
+function escHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ============================================================
+   FMT OUTPUT
+   ============================================================ */
+function setFmt(fmt, btn){
+  st.fmtOutput = fmt;
+  document.querySelectorAll('.fmt-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+/* ============================================================
+   HISTORIAL
+   ============================================================ */
+function guardarHistorial(prompt){
+  st.historial.unshift({
+    prompt, id:Date.now(),
+    time:new Date().toLocaleTimeString('es-MX'),
+    date:new Date().toLocaleDateString('es-MX')
+  });
+  if(st.historial.length>50) st.historial = st.historial.slice(0,50);
+  renderHistorial();
+}
+
+function renderHistorial(){
+  const c = document.getElementById('historial-lista');
+  if(!st.historial.length){
+    c.innerHTML = '<div class="empty"><div class="eico">🕘</div><p>Aún no hay prompts guardados</p></div>';
+    return;
+  }
+  c.innerHTML = '';
+  st.historial.forEach(e=>{
+    const d = document.createElement('div');
+    d.className = 'hist-item';
+    d.innerHTML = `<div class="hist-time">${e.date} — ${e.time}</div><div class="hist-prev">${e.prompt.substring(0,130)}...</div>`;
+    d.onclick = ()=>{ navigator.clipboard.writeText(e.prompt); showToast(); };
+    c.appendChild(d);
+  });
+}
+
+function limpiarHistorial(){
+  st.historial = [];
+  renderHistorial();
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+function showToast(){
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2000);
+}
+
+/* ============================================================
+   SYNC DOM -> STATE (change events)
+   ============================================================ */
+document.addEventListener('change', e=>{
+  const id = e.target.id;
+  const v = e.target.value;
+  if(id==='hair-style') st.hairStyle=v;
+  else if(id==='hair-color') st.hairColor=v;
+  else if(id==='outfit-preset') st.outfitPreset=v;
+  else if(id==='shot-type') st.shotType=v;
+  else if(id==='cam-type') st.camType=v;
+  else if(id==='iluminacion') st.lighting=v;
+  else if(id==='filtro') st.filter=v;
+  else if(id==='tat-estilo') st.tatStyle=v;
+  else if(id==='wm-pos'){ st.wmPos=v; updWMPreview(); }
+  else if(id==='tog-base') st.useBase=e.target.checked;
+  updSummary();
+});
+
+document.addEventListener('input', e=>{
+  const id = e.target.id;
+  if(id==='wm-texto'){ st.wmText=e.target.value; updWMPreview(); }
+  else if(id==='custom-outfit-txt') st.customOutfit=e.target.value;
+});
+
+/* ============================================================
+   INIT
+   ============================================================ */
+function init(){
+  // Detectar dispositivo real
+  const saved = localStorage.getItem('pcDevice');
+  const w = window.innerWidth;
+  let initMode = saved || (w >= 1024 ? 'desktop' : w >= 768 ? 'tablet' : 'mobile');
+  setMode(initMode);
+
+  buildSkin();
+  buildNegativos();
+
+  // Escenarios
+  buildSC('sc-urbano', D.escenarios.urbano, 'escenarios');
+  buildSC('sc-naturaleza', D.escenarios.naturaleza, 'escenarios');
+  buildSC('sc-playa', D.escenarios.playa, 'escenarios');
+  buildSC('sc-casa', D.escenarios.casa, 'escenarios');
+  buildSC('sc-comida', D.escenarios.comida, 'escenarios');
+  buildSC('sc-viajes', D.escenarios.viajes, 'escenarios');
+  buildSC('sc-social', D.escenarios.social, 'escenarios');
+  buildSC('sc-creativos', D.escenarios.creativos, 'escenarios');
+  buildSC('sc-vehiculos', D.escenarios.vehiculos, 'escenarios');
+  buildSC('sc-mexico', D.escenarios.mexico, 'escenarios');
+  buildSC('sc-cotidiano', D.escenarios.cotidiano, 'cotidiano');
+
+  buildRopas();
+  buildPoses();
+  buildOficios();
+  buildExtras();
+  updSummary();
+}
+
+init();
+
+/* ============================================================
+   PWA — SERVICE WORKER + INSTALACIÓN + OFFLINE
+   ============================================================ */
+let deferredPrompt = null;
+let swReg = null;
+
+// ---- Registrar Service Worker ----
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => {
+        swReg = reg;
+        console.log('[PWA] Service Worker registrado:', reg.scope);
+
+        // Escuchar actualizaciones disponibles
+        reg.addEventListener('updatefound', ()=>{
+          const newSW = reg.installing;
+          newSW.addEventListener('statechange', ()=>{
+            if(newSW.state === 'installed' && navigator.serviceWorker.controller){
+              // Hay update disponible
+              document.getElementById('update-bar').classList.add('show');
+            }
+          });
+        });
+      })
+      .catch(err => console.warn('[PWA] Error SW:', err));
+
+    // Escuchar cuando el SW toma control (update aplicado)
+    navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+      window.location.reload();
+    });
+  });
+}
+
+// ---- Aplicar actualización ----
+function applyUpdate(){
+  if(swReg && swReg.waiting){
+    swReg.waiting.postMessage({ type: 'SKIP_WAITING' });
+  }
+}
+
+// ---- Capturar evento de instalación (Android/Chrome) ----
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+
+  // Mostrar banner si no fue descartado antes
+  const dismissed = localStorage.getItem('pwa-dismissed');
+  const installed = localStorage.getItem('pwa-installed');
+  if(!dismissed && !installed){
+    setTimeout(()=>{
+      document.getElementById('install-banner').classList.add('show');
+    }, 2500);
+  }
+});
+
+// ---- Botón instalar ----
+document.getElementById('btn-install-pwa').addEventListener('click', async ()=>{
+  if(!deferredPrompt) return;
+  document.getElementById('install-banner').classList.remove('show');
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if(outcome === 'accepted'){
+    localStorage.setItem('pwa-installed','1');
+    showToastMsg('✓ ¡App instalada correctamente!');
+  }
+  deferredPrompt = null;
+});
+
+function dismissInstall(){
+  document.getElementById('install-banner').classList.remove('show');
+  localStorage.setItem('pwa-dismissed','1');
+}
+
+// ---- App instalada ----
+window.addEventListener('appinstalled', ()=>{
+  localStorage.setItem('pwa-installed','1');
+  document.getElementById('install-banner').classList.remove('show');
+  console.log('[PWA] App instalada.');
+});
+
+// ---- Detectar modo standalone (ya instalada) ----
+if(window.matchMedia('(display-mode: standalone)').matches ||
+   window.navigator.standalone === true){
+  localStorage.setItem('pwa-installed','1');
+}
+
+// ---- Offline / Online ----
+function updNetworkStatus(){
+  const bar = document.getElementById('offline-bar');
+  bar.style.display = navigator.onLine ? 'none' : 'block';
+}
+window.addEventListener('online',  updNetworkStatus);
+window.addEventListener('offline', updNetworkStatus);
+updNetworkStatus();
+
+// ---- Toast personalizado ----
+function showToastMsg(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>{ t.classList.remove('show'); t.textContent = '✓ ¡Copiado!'; }, 3000);
+}
+
+// ---- Splash: ocultar tras cargar ----
+window.addEventListener('load', ()=>{
+  const splash = document.getElementById('pwa-splash');
+  setTimeout(()=>{
+    splash.classList.add('hidden');
+    setTimeout(()=>splash.remove(), 500);
+  }, 1400);
+});
+
+// ---- Shortcuts de URL (?action=random, ?tab=X) ----
+(function handleURLParams(){
+  const p = new URLSearchParams(window.location.search);
+  if(p.get('action')==='random'){
+    setTimeout(()=>{ promptAleatorio(); showTab('output',null); }, 1600);
+  }
+  if(p.get('tab')){
+    setTimeout(()=>{ showTab(p.get('tab'),null); }, 1600);
+  }
+})();
+</script>
+</body>
+</html>
